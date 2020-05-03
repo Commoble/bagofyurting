@@ -103,6 +103,11 @@ public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
 		this.valueWriter = valueWriter;
 	}
 	
+	public boolean hasData(final CompoundNBT nbt)
+	{
+		return nbt.contains(this.name);
+	}
+	
 	/**
 	 * Reconstructs and returns a Map<K,V> from a CompoundNBT
 	 * If the nbt used was given by this.write(map), the map returned will be a reconstruction of the original Map

@@ -5,6 +5,18 @@ import net.minecraft.util.Rotation;
 
 public class RotationUtil
 {
+	public static final Direction BASE_DIRECTION = Direction.SOUTH;
+	
+	public static Rotation getTransformRotation(Direction orientation)
+	{
+		return getHorizontalDifferenceRotation(orientation, BASE_DIRECTION);
+	}
+	
+	public static Rotation getUntransformRotation(Direction orientation)
+	{
+		return getHorizontalDifferenceRotation(BASE_DIRECTION, orientation);
+	}
+	
 	// horizontal indices are South, West, North, East (from 0 to 3 respectively)
 	// degrees of each Rotation enum value is enum index * 90 (clockwise)
 	public static Rotation getHorizontalDifferenceRotation(Direction from, Direction to)

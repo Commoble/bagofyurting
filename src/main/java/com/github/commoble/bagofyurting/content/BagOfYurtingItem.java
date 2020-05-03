@@ -9,7 +9,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUseContext;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ActionResultType;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TranslationTextComponent;
 
 /**
@@ -53,14 +52,18 @@ import net.minecraft.util.text.TranslationTextComponent;
  */
 public class BagOfYurtingItem extends Item
 {
-	public static final String NBT_KEY = "yurtdata";
-	
 	public final int radius;
 
 	public BagOfYurtingItem(int radius, Properties properties)
 	{
 		super(properties);
 		this.radius = radius;
+	}
+
+	@Override
+	public boolean hasEffect(ItemStack stack)
+	{
+		return getDataReader(stack) != null;
 	}
 	
 	/**
@@ -71,7 +74,7 @@ public class BagOfYurtingItem extends Item
 	public static @Nullable Supplier<BagOfYurtingData> getDataReader(ItemStack stack)
 	{
 		CompoundNBT nbt = stack.getOrCreateTag();
-		if (!nbt.getCompound(NBT_KEY).isEmpty())
+		if (BagOfYurtingData.doesNBTContainYurtData(nbt))
 		{
 			return () -> BagOfYurtingData.read(nbt);
 		}
@@ -105,12 +108,6 @@ public class BagOfYurtingItem extends Item
 		return ActionResultType.SUCCESS;
 	}
 	
-	public void unloadBag(ItemUseContext context, BagOfYurtingData data)
-	{
-		// this is the block adjacent to the face that the player used the item on
-		BlockPos origin = context.getPos().offset(context.getFace());
-	}
-	
 	public void loadBag(ItemUseContext context)
 	{
 		BagOfYurtingData data = BagOfYurtingData.yurtBlocksAndConvertToData(context, this.radius);
@@ -118,8 +115,7 @@ public class BagOfYurtingItem extends Item
 		if (!data.isEmpty())
 		{
 			ItemStack newStack = context.getPlayer().getHeldItem(context.getHand()).copy();
-			
-			newStack.getOrCreateTag().put(NBT_KEY, data.toNBT());
+			data.writeIntoNBT(newStack.getOrCreateTag());
 			context.getPlayer().setHeldItem(context.getHand(), newStack);
 		}
 		else
@@ -127,11 +123,22 @@ public class BagOfYurtingItem extends Item
 			context.getPlayer().sendStatusMessage(new TranslationTextComponent("bagofyurting.failure.load"), true);
 		}
 	}
-
-	@Override
-	public boolean hasEffect(ItemStack stack)
+	
+	public void unloadBag(ItemUseContext context, BagOfYurtingData data)
 	{
-		return getDataReader(stack) != null;
+		// attempt to revert unload bag into worldspace
+		boolean success = data.attemptUnloadIntoWorld(context, this.radius);
+		
+		if (success)
+		{
+			ItemStack newStack = context.getPlayer().getHeldItem(context.getHand()).copy();
+			newStack.getOrCreateTag().put(BagOfYurtingData.NBT_KEY, new CompoundNBT());
+			context.getPlayer().setHeldItem(context.getHand(), newStack);
+		}
+		else
+		{
+			context.getPlayer().sendStatusMessage(new TranslationTextComponent("bagofyurting.failure.unload"), true);
+		}
 	}
 	
 	
