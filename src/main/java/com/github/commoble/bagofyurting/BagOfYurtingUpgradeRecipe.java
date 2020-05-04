@@ -64,6 +64,7 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 		ItemStack output = this.getRecipeOutput().copy();
 		int bagRadius = Integer.MAX_VALUE;
 		boolean foundBag = false;
+		List<Integer> dyes = new ArrayList<>(); // the result will have a dye based on the dyes of any bags that have dye
 		for (ItemStack stack : stacks)
 		{
 			Item item = stack.getItem();
@@ -71,6 +72,10 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 			{
 				foundBag = true;
 				int newRadius = ItemRegistrar.BAG_OF_YURTING.getRadius(stack);
+				if (ItemRegistrar.BAG_OF_YURTING.hasColor(stack))
+				{
+					dyes.add(ItemRegistrar.BAG_OF_YURTING.getColor(stack));
+				}
 
 				if (newRadius < bagRadius)
 				{
@@ -82,8 +87,31 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 		{
 			bagRadius = 0;
 		}
+		
+		ItemStack actualOutput = ItemRegistrar.BAG_OF_YURTING.withRadius(output, bagRadius + 1);
+		int colors = dyes.size();
+		if (colors > 0)
+		{
+			int redSum = 0;
+			int greenSum = 0;
+			int blueSum = 0;
+			for (int color : dyes)
+			{
+				redSum += ((color >> 16) & 0xFF);
+				greenSum += ((color >> 8) & 0xFF);
+				blueSum += (color & 0xFF);
+			}
+			int finalRed = ((redSum/colors) << 16);
+			int finalGreen = ((greenSum/colors) << 8);
+			int finalBlue = (blueSum/colors) & 0xFF;
+			
+			int finalColor = finalRed + finalGreen + finalBlue;
+			
+			ItemRegistrar.BAG_OF_YURTING.setColor(actualOutput, finalColor);
+		}
+		
 
-		return ItemRegistrar.BAG_OF_YURTING.withRadius(output, bagRadius + 1);
+		return actualOutput;
 	}
 
 	public static class Serializer extends ShapedRecipe.Serializer
