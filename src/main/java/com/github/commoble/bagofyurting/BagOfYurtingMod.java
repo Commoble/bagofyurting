@@ -15,7 +15,6 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 public class BagOfYurtingMod
 {
 	public static final String MODID = "bagofyurting";
-	public static final String BAG_OF_YURTING = "bag_of_yurting";
 	
 	/** One instance of this class is created by forge when mods are loaded **/
 	public BagOfYurtingMod()

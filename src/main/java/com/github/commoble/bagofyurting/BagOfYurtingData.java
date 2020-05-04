@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting.content;
+package com.github.commoble.bagofyurting;
 
 import java.util.Collection;
 import java.util.List;
@@ -10,8 +10,6 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import com.github.commoble.bagofyurting.Config;
-import com.github.commoble.bagofyurting.TagWrappers;
 import com.github.commoble.bagofyurting.util.NBTMapHelper;
 import com.github.commoble.bagofyurting.util.RotationUtil;
 
@@ -97,7 +95,11 @@ public class BagOfYurtingData
 		World world = context.getWorld();
 		
 		// this is the block adjacent to the face that the player used the item on
-		BlockPos origin = context.getPos().offset(context.getFace());
+		// unless the block we use it on is replaceable
+		// in which case the origin is that block
+		BlockPos hitPos = context.getPos();
+		boolean hitBlockReplaceable = (world.getBlockState(hitPos).getMaterial().isReplaceable());
+		BlockPos origin = hitBlockReplaceable ? hitPos : hitPos.offset(context.getFace());
 		Direction orientation = context.getPlacementHorizontalFacing();
 		Rotation unrotation = RotationUtil.getUntransformRotation(orientation);
 		PlayerEntity player = context.getPlayer();
@@ -143,9 +145,11 @@ public class BagOfYurtingData
 			
 			double volume = xRadius * yRadius * zRadius * 8D;
 			
-			world.playSound(null, new BlockPos(center), SoundEvents.ENTITY_PUFFER_FISH_BLOW_UP, SoundCategory.PLAYERS, 1, 1);
+			int particles = Math.max(5000, (int)volume*5);
 			
-			world.spawnParticle(ParticleTypes.POOF, center.getX(), center.getY(), center.getZ(), (int)(volume*5), xRadius, yRadius, zRadius, 0.05);
+			world.playSound(null, new BlockPos(center), SoundEvents.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 1, 1f);
+			
+			world.spawnParticle(ParticleTypes.EXPLOSION, center.getX(), center.getY(), center.getZ(), particles, xRadius, yRadius, zRadius, 0);
 		
 		}
 	}
@@ -163,11 +167,11 @@ public class BagOfYurtingData
 	
 	/** 
 	 * Returns true if the whitelist/blacklist do not forbid the block from being yurted, or if the player
-	 * has sufficient permission to ignore these
+	 * has sufficient permission to ignore these, or if the player is creative mode
 	 */
 	private static boolean isBlockYurtingAllowedByTags(@Nullable PlayerEntity player, BlockState state, BlockPos pos)
 	{
-		if (player != null && player.hasPermissionLevel(Config.INSTANCE.minPermissionToYurtUnyurtableBlocks.get()))
+		if (player != null && (player.isCreative() ||player.hasPermissionLevel(Config.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
 		{
 			return true;
 		}
@@ -275,7 +279,7 @@ player facing west first, then east
 	
 	private static boolean canBlockBeUnloadedAt(BlockPos pos, World world, @Nonnull PlayerEntity player)
 	{
-		if (player != null && player.hasPermissionLevel(Config.INSTANCE.minPermissionToYurtUnyurtableBlocks.get()))
+		if (player != null && player.isCreative() || player.hasPermissionLevel(Config.INSTANCE.minPermissionToYurtUnyurtableBlocks.get()))
 		{
 			return true;
 		}
