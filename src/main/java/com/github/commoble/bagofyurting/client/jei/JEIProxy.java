@@ -14,7 +14,6 @@ import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.VanillaRecipeCategoryUid;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.registration.ISubtypeRegistration;
-import mezz.jei.api.registration.IVanillaCategoryExtensionRegistration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.ResourceLocation;
@@ -28,16 +27,6 @@ public class JEIProxy implements IModPlugin
 	public ResourceLocation getPluginUid()
 	{
 		return ID;
-	}
-
-	/**
-	 * Register modded extensions to the vanilla crafting recipe category. Custom
-	 * crafting recipes for your mod should use this to tell JEI how they work.
-	 */
-	@Override
-	public void registerVanillaCategoryExtensions(IVanillaCategoryExtensionRegistration registration)
-	{
-		registration.getCraftingCategory().addCategoryExtension(BagOfYurtingUpgradeRecipe.class, UpgradeCraftingExtension::new);
 	}
 
 	/**
