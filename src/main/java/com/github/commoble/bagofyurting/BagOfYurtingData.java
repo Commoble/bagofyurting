@@ -3,6 +3,7 @@ package com.github.commoble.bagofyurting;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -14,6 +15,7 @@ import com.github.commoble.bagofyurting.util.NBTMapHelper;
 import com.github.commoble.bagofyurting.util.RotationUtil;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemUseContext;
 import net.minecraft.nbt.CompoundNBT;
@@ -72,8 +74,10 @@ public class BagOfYurtingData
 		
 		Map<BlockPos, Pair<BlockPos, StateData>> transformPairs = BlockPos.getAllInBox(vertexA, vertexB)
 			.filter(pos -> canBlockBeStored(context, pos))
+			.map(BlockPos::toImmutable)
+			.sorted(new BlockRemovalSorter(world))
 			.collect(Collectors.toMap(
-				pos -> pos.toImmutable(),
+				pos -> pos,
 				// maps a blockpos in worldspace to a relative position based on origin pos and player facing
 				pos -> Pair.of(transformBlockPos(orientation, pos, origin), getPosEntryAndRemoveBlock(context, pos))));
 		
@@ -85,9 +89,23 @@ public class BagOfYurtingData
 		if (transformPairs.size() > 0 && world instanceof ServerWorld)
 		{
 			doPoofEffects((ServerWorld) world, transformPairs.keySet());
+			
+			// we don't cause block updates while removing blocks, wait until the end and then notify all blocks at once
+			for (Entry<BlockPos, Pair<BlockPos, StateData>> entry : transformPairs.entrySet())
+			{
+				BlockPos pos = entry.getKey();
+				BlockState oldState = entry.getValue().getRight().state;
+				sendBlockUpdateAfterRemoval(world, pos, oldState);
+			}
 		}
 		
 		return new BagOfYurtingData(transformData);
+	}
+	
+	private static void sendBlockUpdateAfterRemoval(World world, BlockPos pos, BlockState oldState)
+	{
+		world.notifyBlockUpdate(pos, oldState, Blocks.AIR.getDefaultState(), 3);
+		world.notifyNeighbors(pos, oldState.getBlock());
 	}
 	
 	public boolean attemptUnloadIntoWorld(ItemUseContext context, int radius)
@@ -117,7 +135,9 @@ public class BagOfYurtingData
 		
 		if (success)
 		{
-			worldPositions.forEach((pos, data) -> data.setBlockAndTE(world, pos, unrotation));
+			worldPositions.entrySet().stream()
+				.sorted(BlockUnloadSorter.INSTANCE)
+				.forEach(entry -> entry.getValue().setBlockAndTE(world, entry.getKey(), unrotation));
 			
 			if (world instanceof ServerWorld)
 			{
@@ -272,7 +292,7 @@ player facing west first, then east
 			te.write(nbt);
 		}
 		world.removeTileEntity(pos);
-		world.removeBlock(pos, false);
+		world.setBlockState(pos, Blocks.AIR.getDefaultState(), 0);	// don't notify block update on remove
 		return new StateData(state.rotate(rotation), nbt);
 		
 	}
