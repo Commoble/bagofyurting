@@ -217,7 +217,8 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	{
 		int diameter = this.getDiameter(stack);
 		String sizeText = String.format("%sx%sx%s", diameter, diameter, diameter);
-		tooltip.add(new StringTextComponent(sizeText).setStyle(new Style().setItalic(true).setColor(TextFormatting.GRAY)));
+		// text.setStyle(Style.builder.setItalic.setColor)
+		tooltip.add(new StringTextComponent(sizeText).func_230530_a_(Style.field_240709_b_.func_240722_b_(true).func_240712_a_(TextFormatting.GRAY)));
 	}
 
 }

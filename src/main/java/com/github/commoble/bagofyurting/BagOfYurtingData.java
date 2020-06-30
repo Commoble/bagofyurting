@@ -28,7 +28,7 @@ import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.MinecraftForge;
@@ -105,7 +105,7 @@ public class BagOfYurtingData
 	private static void sendBlockUpdateAfterRemoval(World world, BlockPos pos, BlockState oldState)
 	{
 		world.notifyBlockUpdate(pos, oldState, Blocks.AIR.getDefaultState(), 3);
-		world.notifyNeighbors(pos, oldState.getBlock());
+		world.notifyNeighborsOfStateChange(pos, oldState.getBlock());
 	}
 	
 	public boolean attemptUnloadIntoWorld(ItemUseContext context, int radius)
@@ -158,7 +158,7 @@ public class BagOfYurtingData
 			.orElse(EMPTY_AABB);
 		if (aabb.getAverageEdgeLength() > 0.5D)
 		{
-			Vec3d center = aabb.getCenter();
+			Vector3d center = aabb.getCenter();
 			double xRadius = aabb.getXSize()*0.5;
 			double yRadius = aabb.getYSize()*0.5;
 			double zRadius = aabb.getZSize()*0.5;
@@ -197,8 +197,9 @@ public class BagOfYurtingData
 		}
 		else
 		{
-			return !state.isIn(TagWrappers.blacklist)
-				&& (TagWrappers.whitelist.getAllElements().isEmpty() || state.isIn(TagWrappers.whitelist));
+			// contains, getList
+			return !state.func_235714_a_(TagWrappers.blacklist)
+				&& (TagWrappers.whitelist.func_230236_b_().isEmpty() || state.func_235714_a_(TagWrappers.whitelist));
 		}
 	}
 	
@@ -228,7 +229,7 @@ public class BagOfYurtingData
 		// so we use a fake player if player is null
 		PlayerEntity eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerWorld)world);
 		List<BlockSnapshot> snapshots = worldPositions.keySet().stream()
-			.map(pos -> new BlockSnapshot(world, pos, world.getBlockState(pos)))
+			.map(pos -> BlockSnapshot.create(world, pos))
 			.collect(Collectors.toList());
 		
 		
@@ -307,7 +308,7 @@ player facing west first, then east
 		{
 			BlockState oldState = world.getBlockState(pos);
 			return oldState.isAir(world, pos)
-				|| oldState.isIn(TagWrappers.replaceable)
+				|| oldState.func_235714_a_(TagWrappers.replaceable)
 				|| oldState.getMaterial().isReplaceable();
 		}
 	}
@@ -362,7 +363,7 @@ player facing west first, then east
 				TileEntity te = world.getTileEntity(pos);
 				if (te != null)
 				{
-					te.read(this.tileEntityData);
+					te.func_230337_a_(this.state, this.tileEntityData);
 					// copying the data like this also overwrites the pos
 					te.setWorldAndPos(world, pos);
 				}
