@@ -14,6 +14,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.github.commoble.bagofyurting.util.NBTMapHelper;
 import com.github.commoble.bagofyurting.util.RotationUtil;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
@@ -197,9 +198,10 @@ public class BagOfYurtingData
 		}
 		else
 		{
-			// contains, getList
-			return !state.func_235714_a_(TagWrappers.blacklist)
-				&& (TagWrappers.whitelist.func_230236_b_().isEmpty() || state.func_235714_a_(TagWrappers.whitelist));
+			Block block = state.getBlock();
+			// tags allow this block if the block isn't blacklisted, and if either the whitelist contains the block or is empty
+			return (!TagWrappers.blacklist.contains(block))
+				&& (TagWrappers.whitelist.getAllElements().isEmpty() || TagWrappers.whitelist.contains(block));
 		}
 	}
 	
@@ -308,7 +310,7 @@ player facing west first, then east
 		{
 			BlockState oldState = world.getBlockState(pos);
 			return oldState.isAir(world, pos)
-				|| oldState.func_235714_a_(TagWrappers.replaceable)
+				|| TagWrappers.replaceable.contains(oldState.getBlock())
 				|| oldState.getMaterial().isReplaceable();
 		}
 	}
@@ -363,7 +365,7 @@ player facing west first, then east
 				TileEntity te = world.getTileEntity(pos);
 				if (te != null)
 				{
-					te.func_230337_a_(this.state, this.tileEntityData);
+					te.read(this.state, this.tileEntityData);
 					// copying the data like this also overwrites the pos
 					te.setWorldAndPos(world, pos);
 				}
