@@ -1,8 +1,8 @@
 {
   "type": "bagofyurting:bag_of_yurting_upgrade",
   "pattern": [
-    "bb",
-    "bb"
+    "b",
+    "b"
   ],
   "key": {
     "b": {
