@@ -24,7 +24,7 @@ displayURL="https://www.curseforge.com/minecraft/mc-mods/bag-of-yurting" #option
 # A file name (in the root of the mod JAR) containing a logo for display
 logoFile="bagofyurting_logo.png" #optional
 # A text field displayed in the mod UI
-credits="I hear the Minecraft Mod Development discord channel is the cat's bananas" #optional
+credits="Thanks to qsefthuopq for the zh_cn translation!" #optional
 # A text field displayed in the mod UI
 authors="Commoble"
 # The description text for the mod (multi line!) (#mandatory)
