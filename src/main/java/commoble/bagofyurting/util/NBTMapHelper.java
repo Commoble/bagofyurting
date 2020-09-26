@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting.util;
+package commoble.bagofyurting.util;
 
 import java.util.HashMap;
 import java.util.Map;

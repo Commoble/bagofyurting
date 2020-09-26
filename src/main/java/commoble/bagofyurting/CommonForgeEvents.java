@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
 import net.minecraftforge.eventbus.api.IEventBus;
 

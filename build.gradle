@@ -13,9 +13,9 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = "${mc_version}-${mod_version}"
+version = "${mod_version}"
 group = "com.github.commoble.${modid}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "${modid}"
+archivesBaseName = "${modid}-${mc_version}"
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
@@ -89,6 +89,8 @@ repositories {
     name = "ModMaven"
     url = "https://modmaven.k-4u.nl"
   }
+	maven { url 'https://maven.latmod.com/' } // maven for ftb gui lib until JEI fixes its dependencies
+	maven { url 'https://www.dogforce-games.com/maven/'}
 }
 
 dependencies {
@@ -96,6 +98,7 @@ dependencies {
     
 	// compile against the JEI API but do not include it at runtime
 	compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api")
+	compileOnly fg.deobf('com.feed_the_beast.mods:ftb-gui-library:1.0.0.18')
 	// at runtime, use the full JEI jar
 	runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}")
 

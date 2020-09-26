@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
 import java.util.function.Consumer;
 

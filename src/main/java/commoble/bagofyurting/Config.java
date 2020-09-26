@@ -1,8 +1,7 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
-import com.github.commoble.bagofyurting.util.ConfigHelper;
-import com.github.commoble.bagofyurting.util.ConfigHelper.ConfigValueListener;
-
+import commoble.bagofyurting.util.ConfigHelper;
+import commoble.bagofyurting.util.ConfigHelper.ConfigValueListener;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public class Config

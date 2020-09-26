@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
 import net.minecraft.item.crafting.IRecipeSerializer;
 import net.minecraftforge.registries.ObjectHolder;

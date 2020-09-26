@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
 import java.util.Collection;
 import java.util.List;
@@ -11,9 +11,8 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import com.github.commoble.bagofyurting.util.NBTMapHelper;
-import com.github.commoble.bagofyurting.util.RotationUtil;
-
+import commoble.bagofyurting.util.NBTMapHelper;
+import commoble.bagofyurting.util.RotationUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -231,7 +230,7 @@ public class BagOfYurtingData
 		// so we use a fake player if player is null
 		PlayerEntity eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerWorld)world);
 		List<BlockSnapshot> snapshots = worldPositions.keySet().stream()
-			.map(pos -> BlockSnapshot.create(world, pos))
+			.map(pos -> BlockSnapshot.create(world.getDimensionKey(), world, pos))
 			.collect(Collectors.toList());
 		
 		

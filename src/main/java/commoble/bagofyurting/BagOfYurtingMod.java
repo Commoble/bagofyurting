@@ -1,8 +1,7 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
-import com.github.commoble.bagofyurting.client.ClientEvents;
-import com.github.commoble.bagofyurting.util.ConfigHelper;
-
+import commoble.bagofyurting.client.ClientEvents;
+import commoble.bagofyurting.util.ConfigHelper;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;

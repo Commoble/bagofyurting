@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting.util;
+package commoble.bagofyurting.util;
 
 import net.minecraft.util.Direction;
 import net.minecraft.util.Rotation;

@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;

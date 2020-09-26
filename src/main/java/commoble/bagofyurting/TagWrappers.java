@@ -1,8 +1,9 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
 import net.minecraft.block.Block;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ITag;
+import net.minecraft.util.ResourceLocation;
 
 public class TagWrappers
 {
@@ -12,6 +13,6 @@ public class TagWrappers
 	
 	public static ITag<Block> getBlockTagWrapper(String path)
 	{
-		return BlockTags.makeWrapperTag(BagOfYurtingMod.MODID + ":" + path);
+		return BlockTags.createOptional(new ResourceLocation(BagOfYurtingMod.MODID, path));
 	}
 }

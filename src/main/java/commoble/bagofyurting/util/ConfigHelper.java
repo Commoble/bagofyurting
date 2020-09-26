@@ -18,7 +18,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package com.github.commoble.bagofyurting.util;
+package commoble.bagofyurting.util;
 
 import java.util.ArrayList;
 import java.util.List;

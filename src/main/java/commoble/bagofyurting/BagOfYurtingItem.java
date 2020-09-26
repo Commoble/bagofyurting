@@ -1,4 +1,4 @@
-package com.github.commoble.bagofyurting;
+package commoble.bagofyurting;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -217,7 +217,8 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	{
 		int diameter = this.getDiameter(stack);
 		String sizeText = String.format("%sx%sx%s", diameter, diameter, diameter);
-		tooltip.add(new StringTextComponent(sizeText).func_230530_a_(Style.EMPTY.setItalic(true).applyFormatting(TextFormatting.GRAY)));
+		StringTextComponent text = new StringTextComponent(sizeText);
+		tooltip.add(new StringTextComponent(sizeText).setStyle((Style.EMPTY.setItalic(true).applyFormatting(TextFormatting.GRAY))));
 	}
 
 }
