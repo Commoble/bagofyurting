@@ -1,0 +1,5 @@
+{
+	"item.bagofyurting.bag_of_yurting": "帐篷袋",
+	"bagofyurting.failure.load": "加载帐篷失败：无法在有效范围内加载任何方块",
+	"bagofyurting.failure.unload": "卸载帐篷失败：空间不足"
+}
