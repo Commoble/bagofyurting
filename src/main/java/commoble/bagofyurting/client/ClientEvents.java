@@ -1,7 +1,6 @@
-package com.github.commoble.bagofyurting.client;
+package commoble.bagofyurting.client;
 
-import com.github.commoble.bagofyurting.ItemRegistrar;
-
+import commoble.bagofyurting.ItemRegistrar;
 import net.minecraft.item.IDyeableArmorItem;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;

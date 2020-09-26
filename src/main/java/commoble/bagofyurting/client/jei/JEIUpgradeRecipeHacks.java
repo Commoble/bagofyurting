@@ -1,11 +1,10 @@
-package com.github.commoble.bagofyurting.client.jei;
+package commoble.bagofyurting.client.jei;
 
 import java.util.Arrays;
 
-import com.github.commoble.bagofyurting.BagOfYurtingItem;
-import com.github.commoble.bagofyurting.BagOfYurtingUpgradeRecipe;
-import com.github.commoble.bagofyurting.ItemRegistrar;
-
+import commoble.bagofyurting.BagOfYurtingItem;
+import commoble.bagofyurting.BagOfYurtingUpgradeRecipe;
+import commoble.bagofyurting.ItemRegistrar;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.util.NonNullList;

@@ -1,14 +1,13 @@
-package com.github.commoble.bagofyurting.client.jei;
+package commoble.bagofyurting.client.jei;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import com.github.commoble.bagofyurting.BagOfYurtingMod;
-import com.github.commoble.bagofyurting.BagOfYurtingUpgradeRecipe;
-import com.github.commoble.bagofyurting.Config;
-import com.github.commoble.bagofyurting.ItemRegistrar;
-import com.github.commoble.bagofyurting.ObjectNames;
-
+import commoble.bagofyurting.BagOfYurtingMod;
+import commoble.bagofyurting.BagOfYurtingUpgradeRecipe;
+import commoble.bagofyurting.Config;
+import commoble.bagofyurting.ItemRegistrar;
+import commoble.bagofyurting.ObjectNames;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.VanillaRecipeCategoryUid;
