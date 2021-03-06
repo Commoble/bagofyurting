@@ -1,28 +1,21 @@
 package commoble.bagofyurting;
 
-import java.util.List;
-import java.util.function.Supplier;
-
-import javax.annotation.Nullable;
-
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.item.IDyeableArmorItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
+import net.minecraft.item.*;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.*;
 import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Function;
 
 /**
  * This item collapses a portion of the world into the item's internal storage
@@ -30,10 +23,10 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  * item's given radius. When used on a block on blockpos Q, the inclusive edges
  * of the cuboid to store are as follows: x = [Q.x - radius, Q.x + radius] y =
  * [Q.y, Q.y + 2 * radius] z = [Q.z - radius, Q.z + radius]
- * 
+ *
  * e.g. if radius is 5 and the item is used on the block at xyz = {0,0,0}, the
  * bounds of the cuboid will be x = [-5, 5] y = [0, 10] z = [-5, 5]
- * 
+ *
  * When storing blocks in the bag, Q is defined as the block that the player
  * activated with the bag. When unloading blocks from the bag, Q is defined as
  * the block that the face the player activated faces. e.g. When storing blocks,
@@ -41,28 +34,28 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  * leaving air behind. and when unloading blocks, if the player uses the bag on
  * the top face of the block that now faces that air block the stored blocks
  * will be unloaded in their original positions
- * 
+ *
  * Unloaded blocks are rotated based on the orientation of the player (rounded
  * to a cardinal horizontal facing).
- * 
+ *
  * When storing blocks in the bag, blocks that the player does not have
  * permission to alter are ignored. When unloading blocks from the bag, if the
  * player does not have permission to edit the entire relevant area, the
  * unloading fails and all blocks remain in the bag.
- * 
+ *
  * Permission mods may prevent a player from storing one block by canceling the
  * BlockEvent.BreakEvent, and may prevent a player from unloading blocks by
  * cancelling BlockEvent.EntityMultiPlaceEvent.
- * 
+ *
  * There are three relevant block tags: "bagofyurting:blacklist",
  * "bagofyurting:whitelist", and "bagofyurting:replaceable".
- * 
+ *
  * If the whitelist tag is non-empty, only blocks that are in the whitelist but
  * not in the blacklist can be stored in the bag.
- * 
+ *
  * If the whitelist tag is empty, any block not in the blacklist can be stored
  * in the bag.
- * 
+ *
  * If a block is in the replaceable tag OR the block is air OR the block has a
  * replaceable Material, then that block is allowed to be replaced by the
  * contents of the bag when the bag is unloaded. Any unreplaceable blocks
@@ -127,12 +120,20 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	 * returns a null supplier if the NBT is present, return a non-null supplier
 	 * that generates the data
 	 */
-	public static @Nullable Supplier<BagOfYurtingData> getDataReader(ItemStack stack)
+	public static @Nullable Function<ServerWorld, BagOfYurtingData> getDataReader(ItemStack stack)
 	{
 		CompoundNBT nbt = stack.getOrCreateTag();
-		if (BagOfYurtingData.doesNBTContainYurtData(nbt))
+		if (BagOfYurtingSavedData.doesNBTContainDataId(nbt))
 		{
-			return () -> BagOfYurtingData.read(nbt);
+			return (world) -> {
+				String dataId = BagOfYurtingSavedData.getId(nbt);
+				BagOfYurtingSavedData data = world.getSavedData().getOrCreate(() -> new BagOfYurtingSavedData(dataId), dataId);
+				return data.getDataOrDefault();
+			};
+		}
+		else if (BagOfYurtingData.doesNBTContainYurtData(nbt)) // For compat reasons
+		{
+			return (_world) -> BagOfYurtingData.read(nbt);
 		}
 		else
 		{
@@ -156,7 +157,7 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			// if NBT has data, attempt to unload contents
 			// otherwise, attempt to store contents
 
-			Supplier<BagOfYurtingData> dataGetter = getDataReader(context.getItem());
+			Function<ServerWorld, BagOfYurtingData> dataGetter = getDataReader(context.getItem());
 
 			if (dataGetter == null)
 			{
@@ -164,7 +165,7 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			}
 			else
 			{
-				this.unloadBag(context, dataGetter.get());
+				this.unloadBag(context, dataGetter.apply(((ServerWorld) context.getWorld())));
 			}
 		}
 
@@ -179,8 +180,17 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 
 		if (!data.isEmpty())
 		{
+			// Searching for free uuid
+			UUID id;
+			do {
+				id = UUID.randomUUID();
+			} while (((ServerWorld) context.getWorld()).getSavedData().get(() -> BagOfYurtingSavedData.create("none"), BagOfYurtingSavedData.formatSavedDataName(id.toString())) != null);
+
+			BagOfYurtingSavedData dat = BagOfYurtingSavedData.create(id.toString());
+			dat.setData(data);
+			((ServerWorld) context.getWorld()).getSavedData().set(dat);
 			ItemStack newStack = oldStack.copy();
-			data.writeIntoNBT(newStack.getOrCreateTag());
+			dat.writeNameIntoNbt(newStack.getOrCreateTag());
 			context.getPlayer().setHeldItem(context.getHand(), newStack);
 		}
 		else
@@ -199,7 +209,9 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 		if (success)
 		{
 			ItemStack newStack = oldStack.copy();
-			newStack.getOrCreateTag().put(BagOfYurtingData.NBT_KEY, new CompoundNBT());
+			CompoundNBT tag = newStack.getOrCreateTag();
+			tag.put(BagOfYurtingData.NBT_KEY, new CompoundNBT()); // for compat reasons
+			BagOfYurtingSavedData.cleanIdFromNBT(tag);
 			context.getPlayer().setHeldItem(context.getHand(), newStack);
 		}
 		else
@@ -220,5 +232,4 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 		StringTextComponent text = new StringTextComponent(sizeText);
 		tooltip.add(new StringTextComponent(sizeText).setStyle((Style.EMPTY.setItalic(true).applyFormatting(TextFormatting.GRAY))));
 	}
-
 }
