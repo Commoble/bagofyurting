@@ -39,12 +39,18 @@ public class StorageManager
     {
         dataToSave.add(Pair.of(id, data));
         dirtyMap.put(id, data);
+        // Ensure that generated id will not be removed in onSave
+        dataToRemove.remove(id);
     }
 
     public static void remove(String id)
     {
-        dataToRemove.add(id);
         dirtyMap.remove(id);
+        // If id is queued to save, then cancel it and skip deleting
+        if (!dataToSave.removeIf(pair -> pair.getLeft().equals(id)))
+        {
+            dataToRemove.add(id);
+        }
     }
 
     @Nullable
