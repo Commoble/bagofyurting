@@ -1,5 +1,7 @@
 package commoble.bagofyurting;
 
+import commoble.bagofyurting.storage.DataIdNBTHelper;
+import commoble.bagofyurting.storage.StorageManager;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.*;
 import net.minecraft.nbt.CompoundNBT;
@@ -8,14 +10,12 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.text.*;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.UUID;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * This item collapses a portion of the world into the item's internal storage
@@ -120,20 +120,19 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	 * returns a null supplier if the NBT is present, return a non-null supplier
 	 * that generates the data
 	 */
-	public static @Nullable Function<ServerWorld, BagOfYurtingData> getDataReader(ItemStack stack)
+	public static @Nullable Supplier<BagOfYurtingData> getDataReader(ItemStack stack)
 	{
 		CompoundNBT nbt = stack.getOrCreateTag();
-		if (BagOfYurtingSavedData.doesNBTContainDataId(nbt))
+		if (DataIdNBTHelper.contains(nbt))
 		{
-			return (world) -> {
-				String dataId = BagOfYurtingSavedData.getId(nbt);
-				BagOfYurtingSavedData data = world.getSavedData().getOrCreate(() -> new BagOfYurtingSavedData(dataId), dataId);
-				return data.getDataOrDefault();
+			return () -> {
+				String dataId = DataIdNBTHelper.get(nbt);
+				return StorageManager.load(dataId);
 			};
 		}
 		else if (BagOfYurtingData.doesNBTContainYurtData(nbt)) // For compat reasons
 		{
-			return (_world) -> BagOfYurtingData.read(nbt);
+			return () -> BagOfYurtingData.read(nbt);
 		}
 		else
 		{
@@ -157,7 +156,7 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			// if NBT has data, attempt to unload contents
 			// otherwise, attempt to store contents
 
-			Function<ServerWorld, BagOfYurtingData> dataGetter = getDataReader(context.getItem());
+			Supplier<BagOfYurtingData> dataGetter = getDataReader(context.getItem());
 
 			if (dataGetter == null)
 			{
@@ -165,7 +164,7 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			}
 			else
 			{
-				this.unloadBag(context, dataGetter.apply(((ServerWorld) context.getWorld())));
+				this.unloadBag(context, dataGetter.get());
 			}
 		}
 
@@ -180,17 +179,10 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 
 		if (!data.isEmpty())
 		{
-			// Searching for free uuid
-			UUID id;
-			do {
-				id = UUID.randomUUID();
-			} while (((ServerWorld) context.getWorld()).getSavedData().get(() -> BagOfYurtingSavedData.create("none"), BagOfYurtingSavedData.formatSavedDataName(id.toString())) != null);
-
-			BagOfYurtingSavedData dat = BagOfYurtingSavedData.create(id.toString());
-			dat.setData(data);
-			((ServerWorld) context.getWorld()).getSavedData().set(dat);
+			String id = DataIdNBTHelper.generate();
+			StorageManager.save(id, data);
 			ItemStack newStack = oldStack.copy();
-			dat.writeNameIntoNbt(newStack.getOrCreateTag());
+			DataIdNBTHelper.set(newStack.getOrCreateTag(), id);
 			context.getPlayer().setHeldItem(context.getHand(), newStack);
 		}
 		else
@@ -211,7 +203,11 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			ItemStack newStack = oldStack.copy();
 			CompoundNBT tag = newStack.getOrCreateTag();
 			tag.put(BagOfYurtingData.NBT_KEY, new CompoundNBT()); // for compat reasons
-			BagOfYurtingSavedData.cleanIdFromNBT(tag);
+			String id = DataIdNBTHelper.remove(tag);
+			if (id != null)
+			{
+				StorageManager.remove(id);
+			}
 			context.getPlayer().setHeldItem(context.getHand(), newStack);
 		}
 		else
