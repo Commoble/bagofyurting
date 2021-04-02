@@ -1,5 +1,21 @@
 package commoble.bagofyurting.storage;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+
+import javax.annotation.Nullable;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import commoble.bagofyurting.BagOfYurtingData;
 import commoble.bagofyurting.BagOfYurtingMod;
 import net.minecraft.nbt.CompoundNBT;
@@ -8,26 +24,12 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraft.world.storage.FolderName;
-import net.minecraftforge.event.world.WorldEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.LogicalSidedProvider;
-import net.minecraftforge.fml.common.Mod;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * This class manages storage of {@link BagOfYurtingData}. Should be called only on server side
  */
-@Mod.EventBusSubscriber(modid = BagOfYurtingMod.MODID)
 public class StorageManager
 {
     private static final Logger LOGGER = LogManager.getLogger(StorageManager.class);
@@ -107,11 +109,10 @@ public class StorageManager
         }
     }
 
-    @SubscribeEvent
-    public static void onSave(WorldEvent.Save save)
+    public static void onSave(IWorld world)
     {
         LOGGER.debug("Save started");
-        profile(save.getWorld(), "onSave", () ->
+        profile(world, "onSave", () ->
         {
             Path saveDirectory = getSaveDirectory();
             if (saveDirectory == null)
@@ -120,8 +121,8 @@ public class StorageManager
                 return;
             }
 
-            profile(save.getWorld(), "saveQueued", () -> saveQueued(saveDirectory));
-            profile(save.getWorld(), "removeQueued", () -> removeQueued(saveDirectory));
+            profile(world, "saveQueued", () -> saveQueued(saveDirectory));
+            profile(world, "removeQueued", () -> removeQueued(saveDirectory));
         });
         LOGGER.debug("Save finished");
     }

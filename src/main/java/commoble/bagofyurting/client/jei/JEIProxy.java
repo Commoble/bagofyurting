@@ -6,7 +6,6 @@ import java.util.List;
 import commoble.bagofyurting.BagOfYurtingMod;
 import commoble.bagofyurting.BagOfYurtingUpgradeRecipe;
 import commoble.bagofyurting.Config;
-import commoble.bagofyurting.ItemRegistrar;
 import commoble.bagofyurting.ObjectNames;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
@@ -35,7 +34,7 @@ public class JEIProxy implements IModPlugin
 	@Override
 	public void registerItemSubtypes(ISubtypeRegistration registration)
 	{
-		registration.registerSubtypeInterpreter(ItemRegistrar.BAG_OF_YURTING, stack -> Integer.toString(ItemRegistrar.BAG_OF_YURTING.getRadius(stack)));
+		registration.registerSubtypeInterpreter(BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get(), stack -> Integer.toString(BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getRadius(stack)));
 	}
 
 	/**

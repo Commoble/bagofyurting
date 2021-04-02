@@ -28,7 +28,7 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 	@Override
 	public IRecipeSerializer<?> getSerializer()
 	{
-		return RecipeRegistrar.UPGRADE_RECIPE;
+		return BagOfYurtingMod.INSTANCE.upgradeRecipeSerializer.get();
 	}
 
 	/**
@@ -39,7 +39,7 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 	@Override
 	public ItemStack getRecipeOutput()
 	{
-		return ItemRegistrar.BAG_OF_YURTING.withRadius(super.getRecipeOutput(), this.displayRadius);
+		return BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(super.getRecipeOutput(), this.displayRadius);
 	}
 
 	/**
@@ -71,10 +71,10 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 			if (item instanceof BagOfYurtingItem)
 			{
 				foundBag = true;
-				int newRadius = ItemRegistrar.BAG_OF_YURTING.getRadius(stack);
-				if (ItemRegistrar.BAG_OF_YURTING.hasColor(stack))
+				int newRadius = BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getRadius(stack);
+				if (BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().hasColor(stack))
 				{
-					dyes.add(ItemRegistrar.BAG_OF_YURTING.getColor(stack));
+					dyes.add(BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getColor(stack));
 				}
 
 				if (newRadius < bagRadius)
@@ -88,7 +88,7 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 			bagRadius = 0;
 		}
 		
-		ItemStack actualOutput = ItemRegistrar.BAG_OF_YURTING.withRadius(output, bagRadius + 1);
+		ItemStack actualOutput = BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(output, bagRadius + 1);
 		int colors = dyes.size();
 		if (colors > 0)
 		{
@@ -107,7 +107,7 @@ public class BagOfYurtingUpgradeRecipe extends ShapedRecipe
 			
 			int finalColor = finalRed + finalGreen + finalBlue;
 			
-			ItemRegistrar.BAG_OF_YURTING.setColor(actualOutput, finalColor);
+			BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().setColor(actualOutput, finalColor);
 		}
 		
 

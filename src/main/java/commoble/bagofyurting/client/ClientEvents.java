@@ -1,6 +1,6 @@
 package commoble.bagofyurting.client;
 
-import commoble.bagofyurting.ItemRegistrar;
+import commoble.bagofyurting.BagOfYurtingMod;
 import net.minecraft.item.IDyeableArmorItem;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -17,6 +17,6 @@ public class ClientEvents
 	{
 		event.getItemColors().register(
 			(stack, layer) ->  layer != 0 ? -1 : ((IDyeableArmorItem)stack.getItem()).getColor(stack),
-			ItemRegistrar.BAG_OF_YURTING);
+			BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get());
 	}
 }

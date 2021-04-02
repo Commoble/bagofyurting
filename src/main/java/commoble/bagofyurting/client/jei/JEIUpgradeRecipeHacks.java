@@ -3,8 +3,8 @@ package commoble.bagofyurting.client.jei;
 import java.util.Arrays;
 
 import commoble.bagofyurting.BagOfYurtingItem;
+import commoble.bagofyurting.BagOfYurtingMod;
 import commoble.bagofyurting.BagOfYurtingUpgradeRecipe;
-import commoble.bagofyurting.ItemRegistrar;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.util.NonNullList;
@@ -13,7 +13,7 @@ public class JEIUpgradeRecipeHacks
 {
 	public static BagOfYurtingUpgradeRecipe getFakeRecipe(BagOfYurtingUpgradeRecipe recipe, int outputRadius)
 	{
-		return new BagOfYurtingUpgradeRecipe(recipe.getId(), recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), convertIngredients(recipe.getIngredients(), outputRadius), ItemRegistrar.BAG_OF_YURTING.withRadius(recipe.getRecipeOutput(), outputRadius), outputRadius);
+		return new BagOfYurtingUpgradeRecipe(recipe.getId(), recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), convertIngredients(recipe.getIngredients(), outputRadius), BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(recipe.getRecipeOutput(), outputRadius), outputRadius);
 	}
 	
 	public static NonNullList<Ingredient> convertIngredients(NonNullList<Ingredient> baseIngredients, int outputRadius)
@@ -36,7 +36,7 @@ public class JEIUpgradeRecipeHacks
 	{
 		if (baseIngredient.getItem() instanceof BagOfYurtingItem)
 		{
-			return ItemRegistrar.BAG_OF_YURTING.withRadius(baseIngredient, outputRadius-1);
+			return BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(baseIngredient, outputRadius-1);
 		}
 		else
 		{
