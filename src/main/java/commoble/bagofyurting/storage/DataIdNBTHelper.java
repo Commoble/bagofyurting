@@ -1,14 +1,15 @@
 package commoble.bagofyurting.storage;
 
-import net.minecraft.nbt.CompoundNBT;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.UUID;
+
+import net.minecraft.nbt.CompoundNBT;
 
 public class DataIdNBTHelper
 {
-    private static final String ID = "dataId";
+    private static final String ID = "yurtdata_id";
 
     public static boolean contains(@Nonnull CompoundNBT nbt) {
         return !nbt.getString(ID).isEmpty();
