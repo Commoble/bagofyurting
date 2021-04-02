@@ -111,7 +111,6 @@ public class StorageManager
 
     public static void onSave(IWorld world)
     {
-        LOGGER.debug("Save started");
         profile(world, "onSave", () ->
         {
             Path saveDirectory = getSaveDirectory();
@@ -124,7 +123,6 @@ public class StorageManager
             profile(world, "saveQueued", () -> saveQueued(saveDirectory));
             profile(world, "removeQueued", () -> removeQueued(saveDirectory));
         });
-        LOGGER.debug("Save finished");
     }
 
     private static void saveQueued(Path saveDirectory)
