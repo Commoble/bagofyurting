@@ -4,14 +4,14 @@ import commoble.bagofyurting.util.ConfigHelper;
 import commoble.bagofyurting.util.ConfigHelper.ConfigValueListener;
 import net.minecraftforge.common.ForgeConfigSpec;
 
-public class Config
+public class ServerConfig
 {
-	public static Config INSTANCE;
+	public static ServerConfig INSTANCE;
 	
 	public ConfigValueListener<Integer> minPermissionToYurtUnyurtableBlocks;
 	public ConfigValueListener<Integer> creativeUpgradeIterations;
 	
-	public Config(ForgeConfigSpec.Builder builder, ConfigHelper.Subscriber subscriber)
+	public ServerConfig(ForgeConfigSpec.Builder builder, ConfigHelper.Subscriber subscriber)
 	{
 		INSTANCE = this;
 		

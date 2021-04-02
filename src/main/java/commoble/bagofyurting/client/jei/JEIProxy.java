@@ -5,7 +5,7 @@ import java.util.List;
 
 import commoble.bagofyurting.BagOfYurtingMod;
 import commoble.bagofyurting.BagOfYurtingUpgradeRecipe;
-import commoble.bagofyurting.Config;
+import commoble.bagofyurting.ServerConfig;
 import commoble.bagofyurting.ObjectNames;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
@@ -56,7 +56,7 @@ public class JEIProxy implements IModPlugin
 
 			// recipe for 0 uses a different recipe, JEI finds the recipe for 1 from our recipe json
 			// we need to add fake recipes starting at 2
-			int iterations = Config.INSTANCE.creativeUpgradeIterations.get();
+			int iterations = ServerConfig.INSTANCE.creativeUpgradeIterations.get();
 			List<BagOfYurtingUpgradeRecipe> extraRecipes = new ArrayList<>();
 			for (int i=2; i < iterations; i++)
 			{

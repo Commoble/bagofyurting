@@ -57,7 +57,7 @@ public class BagOfYurtingMod
 		forgeBus.addListener(this::onWorldSave);
 
 		// register common/server configs
-		ConfigHelper.register(ModConfig.Type.SERVER, Config::new);
+		ConfigHelper.register(ModConfig.Type.SERVER, ServerConfig::new);
 
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{

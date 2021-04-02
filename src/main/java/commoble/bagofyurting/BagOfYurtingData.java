@@ -189,7 +189,7 @@ public class BagOfYurtingData
 	 */
 	private static boolean isBlockYurtingAllowedByTags(@Nullable PlayerEntity player, BlockState state, BlockPos pos)
 	{
-		if (player != null && (player.isCreative() ||player.hasPermissionLevel(Config.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
+		if (player != null && (player.isCreative() ||player.hasPermissionLevel(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
 		{
 			return true;
 		}
@@ -299,7 +299,7 @@ player facing west first, then east
 
 	private static boolean canBlockBeUnloadedAt(BlockPos pos, World world, @Nonnull PlayerEntity player)
 	{
-		if (player != null && player.isCreative() || player.hasPermissionLevel(Config.INSTANCE.minPermissionToYurtUnyurtableBlocks.get()))
+		if (player != null && player.isCreative() || player.hasPermissionLevel(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get()))
 		{
 			return true;
 		}
