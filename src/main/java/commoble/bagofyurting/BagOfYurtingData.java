@@ -1,5 +1,16 @@
 package commoble.bagofyurting;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.commons.lang3.tuple.Pair;
+
 import commoble.bagofyurting.util.NBTMapHelper;
 import commoble.bagofyurting.util.RotationUtil;
 import net.minecraft.block.Block;
@@ -25,15 +36,6 @@ import net.minecraftforge.common.util.BlockSnapshot;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.event.world.BlockEvent.BreakEvent;
 import net.minecraftforge.event.world.BlockEvent.EntityMultiPlaceEvent;
-import org.apache.commons.lang3.tuple.Pair;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 public class BagOfYurtingData
 {
@@ -167,7 +169,7 @@ public class BagOfYurtingData
 
 			world.playSound(null, new BlockPos(center), SoundEvents.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 1, 1f);
 
-			world.spawnParticle(ParticleTypes.EXPLOSION, center.getX(), center.getY(), center.getZ(), particles, xRadius, yRadius, zRadius, 0);
+			OptionalSpawnParticlePacket.spawnParticlesFromServer(world, ParticleTypes.EXPLOSION, center.getX(), center.getY(), center.getZ(), particles, xRadius, yRadius, zRadius, 0);
 
 		}
 	}
