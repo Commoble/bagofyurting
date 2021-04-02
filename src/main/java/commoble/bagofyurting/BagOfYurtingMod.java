@@ -8,6 +8,7 @@ import net.minecraft.item.ItemGroup;
 import net.minecraft.item.crafting.IRecipeSerializer;
 import net.minecraft.item.crafting.ShapedRecipe;
 import net.minecraft.world.IWorld;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.WorldEvent;
@@ -74,6 +75,9 @@ public class BagOfYurtingMod
 	void onWorldSave(WorldEvent.Save event)
 	{
 		IWorld world = event.getWorld();
-		StorageManager.onSave(world);
+		if (world instanceof ServerWorld)
+		{
+			StorageManager.onSave((ServerWorld)world);
+		}
 	}
 }

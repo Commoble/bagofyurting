@@ -21,11 +21,8 @@ import commoble.bagofyurting.BagOfYurtingMod;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraft.world.storage.FolderName;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
 
 /**
  * This class manages storage of {@link BagOfYurtingData}. Should be called only on server side
@@ -56,14 +53,14 @@ public class StorageManager
     }
 
     @Nullable
-    public static BagOfYurtingData load(String id)
+    public static BagOfYurtingData load(MinecraftServer server, String id)
     {
         if (dirtyMap.containsKey(id))
         {
             return dirtyMap.get(id);
         }
 
-        Path directory = getSaveDirectory();
+        Path directory = getSaveDirectory(server);
         if (directory == null)
         {
             LOGGER.warn("load(" + id + "): save directory is null. Is method called on client side? Returning false");
@@ -84,20 +81,21 @@ public class StorageManager
             }
             catch (IOException e)
             {
-                throw new RuntimeException(e);
+            	LOGGER.error("Unable to load save data for Bag of Yurting:", e);
+                return null;
             }
             return BagOfYurtingData.read(nbt);
         }
     }
 
-    public static boolean has(String id)
+    public static boolean has(MinecraftServer server, String id)
     {
         if (dirtyMap.containsKey(id))
         {
             return true;
         }
 
-        Path directory = getSaveDirectory();
+        Path directory = getSaveDirectory(server);
         if (directory == null)
         {
             LOGGER.warn("has(" + id + "): save directory is null. Is method called on client side? Returning false");
@@ -109,11 +107,11 @@ public class StorageManager
         }
     }
 
-    public static void onSave(IWorld world)
+    public static void onSave(ServerWorld world)
     {
         profile(world, "onSave", () ->
         {
-            Path saveDirectory = getSaveDirectory();
+            Path saveDirectory = getSaveDirectory(world.getServer());
             if (saveDirectory == null)
             {
                 LOGGER.warn("Save directory is null in onSave call");
@@ -169,14 +167,8 @@ public class StorageManager
     }
 
     @Nullable
-    private static Path getSaveDirectory()
+    private static Path getSaveDirectory(MinecraftServer server)
     {
-        MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-        if (server == null)
-        {
-            return null;
-        }
-
         Path dir = server.func_240776_a_(new FolderName(BagOfYurtingMod.MODID));
         if (!Files.exists(dir))
         {
@@ -186,28 +178,17 @@ public class StorageManager
             }
             catch (IOException e)
             {
-                throw new RuntimeException("Failed to create mod folder: " + dir, e);
+            	LOGGER.error("Failed to create mod folder: " + dir, e);
+            	return null;
             }
         }
         return dir;
     }
 
-    private static void profile(IWorld world, String name, Runnable runnable)
+    private static void profile(ServerWorld world, String name, Runnable runnable)
     {
-        if (world instanceof World)
-        {
-            ((World) world).getProfiler().startSection(BagOfYurtingMod.MODID + "#" + name);
-        }
-        try
-        {
-            runnable.run();
-        }
-        finally
-        {
-            if (world instanceof World)
-            {
-                ((World) world).getProfiler().endSection();
-            }
-        }
+        world.getProfiler().startSection(BagOfYurtingMod.MODID + "#" + name);
+        runnable.run();
+        world.getProfiler().endSection();
     }
 }

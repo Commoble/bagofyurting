@@ -6,6 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.server.MinecraftServer;
 
 public class DataIdNBTHelper
 {
@@ -39,13 +40,13 @@ public class DataIdNBTHelper
     }
 
     @Nonnull
-    public static String generate() {
+    public static String generate(MinecraftServer server) {
         UUID id;
         do
         {
             id = UUID.randomUUID();
         }
-        while (StorageManager.has(id.toString()));
+        while (StorageManager.has(server, id.toString()));
         return id.toString();
     }
 }
