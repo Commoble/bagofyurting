@@ -63,7 +63,6 @@ public class StorageManager
         Path directory = getSaveDirectory(server);
         if (directory == null)
         {
-            LOGGER.warn("load(" + id + "): save directory is null. Is method called on client side? Returning false");
             return null;
         }
         else
@@ -98,7 +97,6 @@ public class StorageManager
         Path directory = getSaveDirectory(server);
         if (directory == null)
         {
-            LOGGER.warn("has(" + id + "): save directory is null. Is method called on client side? Returning false");
             return false;
         }
         else
@@ -114,7 +112,6 @@ public class StorageManager
             Path saveDirectory = getSaveDirectory(world.getServer());
             if (saveDirectory == null)
             {
-                LOGGER.warn("Save directory is null in onSave call");
                 return;
             }
 
@@ -139,7 +136,7 @@ public class StorageManager
             }
             catch (IOException e)
             {
-                LOGGER.error("Could not save bag data with id: " + pair.getLeft());
+                LOGGER.error("Could not save Bag of Yurting data with id: " + pair.getLeft());
                 toReSave.add(pair);
             }
         }
@@ -159,7 +156,7 @@ public class StorageManager
             }
             catch (IOException e)
             {
-                LOGGER.error("Could not dele bag data with id: " + id, e);
+                LOGGER.error("Could not delete Bag of Yurting data with id: " + id, e);
                 failedRemove.add(id);
             }
         }
@@ -178,7 +175,7 @@ public class StorageManager
             }
             catch (IOException e)
             {
-            	LOGGER.error("Failed to create mod folder: " + dir, e);
+            	LOGGER.error("Failed to create Bag of Yurting mod folder: " + dir, e);
             	return null;
             }
         }
