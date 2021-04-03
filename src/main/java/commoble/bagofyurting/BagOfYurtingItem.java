@@ -1,5 +1,6 @@
 package commoble.bagofyurting;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -227,6 +228,61 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 		{
 			context.getPlayer().sendStatusMessage(new TranslationTextComponent("bagofyurting.failure.unload"), true);
 		}
+	}
+	
+	public static ItemStack getUpgradeRecipeResult(List<ItemStack> inputs, ItemStack baseOutput)
+	{
+		ItemStack output = baseOutput.copy();
+		int bagRadius = Integer.MAX_VALUE;
+		boolean foundBag = false;
+		List<Integer> dyes = new ArrayList<>(); // the result will have a dye based on the dyes of any bags that have dye
+		for (ItemStack stack : inputs)
+		{
+			Item item = stack.getItem();
+			if (item instanceof BagOfYurtingItem)
+			{
+				foundBag = true;
+				int newRadius = BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getRadius(stack);
+				if (BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().hasColor(stack))
+				{
+					dyes.add(BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getColor(stack));
+				}
+
+				if (newRadius < bagRadius)
+				{
+					bagRadius = newRadius;
+				}
+			}
+		}
+		if (!foundBag)
+		{
+			bagRadius = 0;
+		}
+		
+		ItemStack actualOutput = BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(output, bagRadius + 1);
+		int colors = dyes.size();
+		if (colors > 0)
+		{
+			int redSum = 0;
+			int greenSum = 0;
+			int blueSum = 0;
+			for (int color : dyes)
+			{
+				redSum += ((color >> 16) & 0xFF);
+				greenSum += ((color >> 8) & 0xFF);
+				blueSum += (color & 0xFF);
+			}
+			int finalRed = ((redSum/colors) << 16);
+			int finalGreen = ((greenSum/colors) << 8);
+			int finalBlue = (blueSum/colors) & 0xFF;
+			
+			int finalColor = finalRed + finalGreen + finalBlue;
+			
+			BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().setColor(actualOutput, finalColor);
+		}
+		
+
+		return actualOutput;
 	}
 
 	/**

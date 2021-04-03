@@ -7,6 +7,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.crafting.IRecipeSerializer;
 import net.minecraft.item.crafting.ShapedRecipe;
+import net.minecraft.item.crafting.ShapelessRecipe;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.server.ServerWorld;
@@ -44,7 +45,8 @@ public class BagOfYurtingMod
 	
 	// registry objects
 	public final RegistryObject<BagOfYurtingItem> bagOfYurtingItem;
-	public final RegistryObject<IRecipeSerializer<ShapedRecipe>> upgradeRecipeSerializer;
+	public final RegistryObject<IRecipeSerializer<ShapedRecipe>> shapedUpgradeRecipeSerializer;
+	public final RegistryObject<IRecipeSerializer<ShapelessRecipe>> shapelessUpgradeRecipeSerializer;
 
 	/** One instance of this class is created by forge when mods are loaded **/
 	public BagOfYurtingMod()
@@ -60,7 +62,8 @@ public class BagOfYurtingMod
 		
 		// register objects
 		this.bagOfYurtingItem = items.register(ObjectNames.BAG_OF_YURTING, () -> new BagOfYurtingItem(new Item.Properties().group(ItemGroup.TOOLS).maxStackSize(1)));
-		this.upgradeRecipeSerializer = recipeSerializers.register(ObjectNames.UPGRADE_RECIPE, () -> new BagOfYurtingUpgradeRecipe.Serializer());
+		this.shapedUpgradeRecipeSerializer = recipeSerializers.register(ObjectNames.SHAPED_UPGRADE_RECIPE, () -> new ShapedBagUpgradeRecipe.Serializer());
+		this.shapelessUpgradeRecipeSerializer = recipeSerializers.register(ObjectNames.SHAPELESS_UPGRADE_RECIPE, () -> new ShapelessBagUpgradeRecipe.Serializer());
 		
 		// subscribe events to mod bus
 		modBus.addListener(this::onCommonSetup);

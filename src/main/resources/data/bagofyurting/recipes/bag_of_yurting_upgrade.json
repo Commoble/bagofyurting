@@ -1,15 +1,16 @@
 {
-  "type": "bagofyurting:bag_of_yurting_upgrade",
-  "pattern": [
-    "b",
-    "b"
-  ],
-  "key": {
-    "b": {
-      "item": "bagofyurting:bag_of_yurting"
-    }
-  },
-  "result": {
-    "item": "bagofyurting:bag_of_yurting"
-  }
+	"type": "bagofyurting:shapeless_bag_of_yurting_upgrade",
+	"ingredients": 
+	[
+		{
+			"item": "bagofyurting:bag_of_yurting"
+		},
+		{
+			"item": "bagofyurting:bag_of_yurting"
+		}
+	],
+	"result": 
+	{
+		"item": "bagofyurting:bag_of_yurting"
+	}
 }
