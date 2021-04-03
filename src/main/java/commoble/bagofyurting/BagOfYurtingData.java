@@ -59,6 +59,8 @@ public class BagOfYurtingData
 	/** Removes blocks from the world and stores them as yurt data, returning the data **/
 	public static BagOfYurtingData yurtBlocksAndConvertToData(ItemUseContext context, int radius)
 	{
+		PlayerEntity player = context.getPlayer();
+		boolean canPlayerOverrideSafetyLists = canPlayerOverrideSafetyLists(player);
 		// this is the block that the player used the item on
 		BlockPos origin = context.getPos();
 		Direction orientation = context.getPlacementHorizontalFacing();
@@ -73,7 +75,7 @@ public class BagOfYurtingData
 		// don't get any blocks that we aren't allowed to get
 
 		Map<BlockPos, Pair<BlockPos, StateData>> transformPairs = BlockPos.getAllInBox(vertexA, vertexB)
-			.filter(pos -> canBlockBeStored(context, pos))
+			.filter(pos -> canBlockBeStored(canPlayerOverrideSafetyLists, context, pos))
 			.map(BlockPos::toImmutable)
 			.sorted(new BlockRemovalSorter(world))
 			.collect(Collectors.toMap(
@@ -121,6 +123,7 @@ public class BagOfYurtingData
 		Direction orientation = context.getPlacementHorizontalFacing();
 		Rotation unrotation = RotationUtil.getUntransformRotation(orientation);
 		PlayerEntity player = context.getPlayer();
+		boolean canPlayerOverrideSafetyLists = canPlayerOverrideSafetyLists(player);
 
 		Map<BlockPos, StateData> worldPositions = this.map.entrySet()
 			.stream()
@@ -130,7 +133,7 @@ public class BagOfYurtingData
 
 		// make sure all blocks we want to place are placeable
 		boolean success = worldPositions.entrySet().stream()
-			.allMatch(entry -> canBlockBeUnloadedAt(entry.getKey(), world, player))
+			.allMatch(entry -> canBlockBeUnloadedAt(canPlayerOverrideSafetyLists, entry.getKey(), world))
 			&& doesPlaceEventSucceed(context, world, player, worldPositions);
 
 		if (success)
@@ -173,15 +176,27 @@ public class BagOfYurtingData
 
 		}
 	}
+	
+	private static boolean canPlayerOverrideSafetyLists(@Nullable PlayerEntity player)
+	{
+		if (player != null && (player.isCreative() || player.hasPermissionLevel(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
+		{
+			return TransientPlayerData.isPlayerOverridingSafetyList(PlayerEntity.getUUID(player.getGameProfile()));
+		}
+		else
+		{
+			return false;
+		}
+	}
 
-	private static boolean canBlockBeStored(ItemUseContext context, BlockPos pos)
+	private static boolean canBlockBeStored(boolean canPlayerOverrideSafetyLists, ItemUseContext context, BlockPos pos)
 	{
 		World world = context.getWorld();
 		BlockState state = world.getBlockState(pos);
 		PlayerEntity player = context.getPlayer();
 		return !state.isAir(context.getWorld(), pos)
 			&& !World.isOutsideBuildHeight(pos)
-			&& isBlockYurtingAllowedByTags(player, state, pos)
+			&& isBlockYurtingAllowedByTags(canPlayerOverrideSafetyLists, state, pos)
 			&& doesBreakEventSucceed(world, pos, state, player);
 	}
 
@@ -189,9 +204,9 @@ public class BagOfYurtingData
 	 * Returns true if the whitelist/blacklist do not forbid the block from being yurted, or if the player
 	 * has sufficient permission to ignore these, or if the player is creative mode
 	 */
-	private static boolean isBlockYurtingAllowedByTags(@Nullable PlayerEntity player, BlockState state, BlockPos pos)
+	private static boolean isBlockYurtingAllowedByTags(boolean canPlayerOverrideSafetyLists, BlockState state, BlockPos pos)
 	{
-		if (player != null && (player.isCreative() ||player.hasPermissionLevel(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
+		if (canPlayerOverrideSafetyLists)
 		{
 			return true;
 		}
@@ -299,9 +314,9 @@ player facing west first, then east
 
 	}
 
-	private static boolean canBlockBeUnloadedAt(BlockPos pos, World world, @Nonnull PlayerEntity player)
+	private static boolean canBlockBeUnloadedAt(boolean canPlayerOverrideSafetyLists, BlockPos pos, World world)
 	{
-		if (player != null && player.isCreative() || player.hasPermissionLevel(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get()))
+		if (canPlayerOverrideSafetyLists)
 		{
 			return true;
 		}
