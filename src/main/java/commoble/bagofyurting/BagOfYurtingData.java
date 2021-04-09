@@ -1,9 +1,11 @@
 package commoble.bagofyurting;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -11,8 +13,11 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import commoble.bagofyurting.CompressedBagOfYurtingData.CompressedStateData;
 import commoble.bagofyurting.util.NBTMapHelper;
 import commoble.bagofyurting.util.RotationUtil;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -349,6 +354,34 @@ player facing west first, then east
 	public static BagOfYurtingData read(CompoundNBT nbt)
 	{
 		return new BagOfYurtingData(mapper.read(nbt));
+	}
+	
+	public CompressedBagOfYurtingData compress()
+	{
+		final Object2IntMap<BlockState> indexMap = new Object2IntOpenHashMap<>();
+		final List<BlockState> states = new ArrayList<>();
+		final List<CompressedStateData> data = new ArrayList<>();
+		
+		this.map.forEach((pos,stateData) ->
+		{
+			final BlockState state = stateData.state;
+			@Nullable CompoundNBT nbt = stateData.tileEntityData;
+			// uncompressed (old) format uses empty nbts if no data is present, compressed format uses optionals
+			final Optional<CompoundNBT> optionalNBT = nbt == null || nbt.isEmpty() ? Optional.empty() : Optional.of(nbt);
+			// if we haven't stored this specific blockstate yet,
+			// then add it to the state-list-pallette, and use its index in the list as that index
+			final int index = indexMap.computeIfAbsent(state, newState ->
+			{
+				int newIndex = states.size();
+				states.add(state);
+				return newIndex;
+			});
+			
+			CompressedStateData compressedData = new CompressedStateData(pos, index, optionalNBT);
+			data.add(compressedData);
+		});
+		
+		return new CompressedBagOfYurtingData(states,data);
 	}
 
 	public static class StateData

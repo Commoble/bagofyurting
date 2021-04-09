@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import commoble.bagofyurting.BagOfYurtingData;
 import commoble.bagofyurting.BagOfYurtingMod;
+import commoble.bagofyurting.CompressedBagOfYurtingData;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.server.MinecraftServer;
@@ -83,7 +84,7 @@ public class StorageManager
             	LOGGER.error("Unable to load save data for Bag of Yurting:", e);
                 return null;
             }
-            return BagOfYurtingData.read(nbt);
+            return CompressedBagOfYurtingData.fromNBT(nbt).uncompress();
         }
     }
 
@@ -127,8 +128,8 @@ public class StorageManager
         {
             Pair<String, BagOfYurtingData> pair = dataToSave.poll();
             Path file = saveDirectory.resolve(pair.getLeft() + ".dat");
-            CompoundNBT nbt = new CompoundNBT();
-            pair.getRight().writeIntoNBT(nbt);
+            CompressedBagOfYurtingData data = pair.getRight().compress();
+            CompoundNBT nbt = data.toNBT();
             try
             {
                 CompressedStreamTools.writeCompressed(nbt, file.toFile());
