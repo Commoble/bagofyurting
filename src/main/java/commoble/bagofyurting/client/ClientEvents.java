@@ -15,7 +15,7 @@ public class ClientEvents
 	public static ClientConfig config;
 	public static boolean overridingSafetyList = false;
 	
-	/** Called by mod constructor on mod init, isolated to avoid classloading client classes on server**/
+	///** Called by mod constructor on mod init, isolated to avoid classloading client classes on server**/
 	public static void subscribeClientEvents(IEventBus modBus, IEventBus forgeBus)
 	{
 		modBus.addListener(ClientEvents::registerItemColors);

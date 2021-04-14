@@ -39,34 +39,35 @@ SOFTWARE.
 /**
  * Helper class for writing a Map into a CompoundNBT
  * example usage for use in e.g. a WorldSavedData, a TileEntity, etc:
- * 
- * 	private static final String BLOCKS = "blocks";
+ *
+<pre><code>
+	private static final String BLOCKS = "blocks";
 	private static final String BLOCKPOS = "blockpos";
 	private static final String BLOCKSTATE = "blockstate";
 	
-	private Map<BlockPos, BlockState> map = new HashMap<>();
+	{@code private Map<BlockPos, BlockState> map = new HashMap<>();}
 	
-	private static final NBTMapHelper<BlockPos, BlockState> BLOCKS_MAPPER = new NBTMapHelper<>(
+	{@code private static final NBTMapHelper<BlockPos, BlockState> BLOCKS_MAPPER = new NBTMapHelper<>(}
 			BLOCKS,
-			(nbt, blockPos) -> nbt.put(BLOCKPOS, NBTUtil.writeBlockPos(blockPos)),
-			nbt -> NBTUtil.readBlockPos(nbt.getCompound(BLOCKPOS)),
-			(nbt, blockState) -> nbt.put(BLOCKSTATE, NBTUtil.writeBlockState(blockState)),
-			nbt -> NBTUtil.readBlockState(nbt.getCompound(BLOCKSTATE))
+	{@code 		(nbt, blockPos) -> nbt.put(BLOCKPOS, NBTUtil.writeBlockPos(blockPos)),}
+	{@code 		nbt -> NBTUtil.readBlockPos(nbt.getCompound(BLOCKPOS)),}
+	{@code 		(nbt, blockState) -> nbt.put(BLOCKSTATE, NBTUtil.writeBlockState(blockState)),}
+	{@code 		nbt -> NBTUtil.readBlockState(nbt.getCompound(BLOCKSTATE))}
 			);
 			
-	@Override
+	{@literal @}Override
 	public void read(CompoundNBT nbt)
 	{
 		this.map = BLOCKS_MAPPER.read(nbt);
 	}
 
-	@Override
+	{@literal @}Override
 	public CompoundNBT write(CompoundNBT compound)
 	{
 		BLOCKS_MAPPER.write(this.map, compound);
 		return compound;
 	}
-			
+</code></pre>
 			
  * 
  * @author Joseph aka Commoble
@@ -109,7 +110,7 @@ public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
 	}
 	
 	/**
-	 * Reconstructs and returns a Map<K,V> from a CompoundNBT
+	 * Reconstructs and returns a {@code Map<K,V>} from a CompoundNBT
 	 * If the nbt used was given by this.write(map), the map returned will be a reconstruction of the original Map
 	 * @param nbt The CompoundNBT to read and construct the Map from
 	 * @return A Map that the data contained in the CompoundNBT represents
@@ -146,7 +147,7 @@ public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
 	/**
 	 * Given a map and a CompoundNBT, writes the map into the NBT
 	 * The same compoundNBT can be given to this.read to retrieve that map
-	 * @param map A Map<K,V>
+	 * @param map A {@code Map<K,V>}
 	 * @param compound A CompoundNBT to write the map into
 	 * @return a CompoundNBT that, when used as the argument to this.read(nbt), will cause that function to reconstruct and return a copy of the original map
 	 */
