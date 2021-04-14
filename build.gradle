@@ -19,6 +19,13 @@ archivesBaseName = "${modid}-${mc_version}"
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
+sourceSets
+{
+	main
+	test
+	api
+}
+
 minecraft {
     mappings channel: 'snapshot', version: "${mappings_version}"    
     // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
@@ -38,6 +45,7 @@ minecraft {
             mods {
                 bagofyurting {
                     source sourceSets.main
+                    source sourceSets.api
                 }
             }
         }
@@ -54,6 +62,7 @@ minecraft {
             mods {
                 bagofyurting {
                     source sourceSets.main
+                    source sourceSets.api
                 }
             }
         }
@@ -72,10 +81,17 @@ minecraft {
             mods {
                 bagofyurting {
                     source sourceSets.main
+                    source sourceSets.api
                 }
             }
         }
     }
+}
+
+configurations
+{
+	apiCompile.extendsFrom(compile)
+	debugCompile.extendsFrom(compile)
 }
 
 repositories {
@@ -95,6 +111,7 @@ repositories {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
+    implementation sourceSets.api.output
     
 	// compile against the JEI API but do not include it at runtime
 	compileOnly fg.deobf("mezz.jei:jei-${mc_version}:${jei_version}:api")
@@ -125,15 +142,60 @@ jar.finalizedBy('reobfJar')
 // However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
 //publish.dependsOn('reobfJar')
 
+task javadocJar(type: Jar, dependsOn: javadoc) {
+	classifier = "javadoc"
+	from javadoc.destinationDir
+}
+
+task sourcesJar(type: Jar) {
+	classifier = "sources"
+	from sourceSets.main.allJava
+	from sourceSets.api.allJava
+}
+task apiJar(type: Jar) {
+	classifier = "api"
+	from sourceSets.api.output
+	from sourceSets.api.allJava
+	// exclude api internals from canonical public api
+	exclude "commoble/bagofyurting/api/internal/"
+}
+
+// full production jar plus attached sources for debugging
+task debugJar(type: Jar) {
+	classifier = "debug"
+	from sourceSets.main.output
+	from sourceSets.main.allJava
+	from sourceSets.api.output
+	from sourceSets.api.allJava
+	// if we use mixins, then we have to exclude this from the compileOnly dependency,
+	// or mixins from this mod don't apply when we run the depending mod, weirdly
+	// exclude "META-INF/mods.toml"
+}
+
+artifacts {
+	archives javadocJar
+	archives sourcesJar
+	archives apiJar
+	archives debugJar
+}
+
+// run "gradlew build publish" to build jars and generate a maven repo for them
+// run "gradlew build" to build the jars without mavening them
 publishing {
     publications {
         mavenJava(MavenPublication) {
+			artifactId project.archivesBaseName
             artifact jar
+			artifact apiJar
+			artifact sourcesJar
+			artifact javadocJar
+			artifact debugJar
         }
     }
     repositories {
         maven {
-            url "file:///${project.projectDir}/mcmodsrepo"
+			name="localMaven"
+            url "file:///${project.projectDir}/maven"
         }
     }
 }

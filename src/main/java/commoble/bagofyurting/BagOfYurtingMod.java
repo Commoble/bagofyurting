@@ -1,5 +1,6 @@
 package commoble.bagofyurting;
 
+import commoble.bagofyurting.api.internal.DataTransformers;
 import commoble.bagofyurting.client.ClientEvents;
 import commoble.bagofyurting.storage.StorageManager;
 import commoble.bagofyurting.util.ConfigHelper;
@@ -19,6 +20,7 @@ import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.network.NetworkRegistry;
@@ -67,6 +69,7 @@ public class BagOfYurtingMod
 		
 		// subscribe events to mod bus
 		modBus.addListener(this::onCommonSetup);
+		modBus.addListener(this::onModloadingComplete);
 
 		// subscribe events to forge bus
 		forgeBus.addListener(this::onWorldSave);
@@ -96,6 +99,16 @@ public class BagOfYurtingMod
 			IsWasSprintPacket::write,
 			IsWasSprintPacket::read,
 			IsWasSprintPacket::handle);
+	}
+	
+	void onModloadingComplete(FMLLoadCompleteEvent event)
+	{
+		event.enqueueWork(this::afterModloadingComplete);
+	}
+	
+	void afterModloadingComplete()
+	{
+		DataTransformers.freezeRegistries();
 	}
 
 	void onWorldSave(WorldEvent.Save event)

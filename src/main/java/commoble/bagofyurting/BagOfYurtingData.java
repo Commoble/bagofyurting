@@ -14,6 +14,10 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 
 import commoble.bagofyurting.CompressedBagOfYurtingData.CompressedStateData;
+import commoble.bagofyurting.api.BagOfYurtingAPI;
+import commoble.bagofyurting.api.BlockDataDeserializer;
+import commoble.bagofyurting.api.BlockDataSerializer;
+import commoble.bagofyurting.api.internal.DataTransformers;
 import commoble.bagofyurting.util.NBTMapHelper;
 import commoble.bagofyurting.util.RotationUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -86,7 +90,7 @@ public class BagOfYurtingData
 			.collect(Collectors.toMap(
 				pos -> pos,
 				// maps a blockpos in worldspace to a relative position based on origin pos and player facing
-				pos -> Pair.of(transformBlockPos(orientation, pos, origin), getPosEntryAndRemoveBlock(context, pos))));
+				pos -> Pair.of(transformBlockPos(orientation, pos, origin), getPosEntryAndRemoveBlock(context, pos, vertexA, vertexB))));
 
 		Map<BlockPos, StateData> transformData = transformPairs.values().stream()
 			.collect(Collectors.toMap(
@@ -143,9 +147,11 @@ public class BagOfYurtingData
 
 		if (success)
 		{
+			BlockPos minYurt = origin.add(-radius,0,-radius);
+			BlockPos maxYurt = origin.add(radius,2*radius,radius);
 			worldPositions.entrySet().stream()
 				.sorted(BlockUnloadSorter.INSTANCE)
-				.forEach(entry -> entry.getValue().setBlockAndTE(world, entry.getKey(), unrotation));
+				.forEach(entry -> entry.getValue().setBlockAndTE(world, entry.getKey(), unrotation, minYurt, maxYurt));
 
 			if (world instanceof ServerWorld)
 			{
@@ -302,7 +308,8 @@ player facing west first, then east
 	}
 
 	/** The position here is the untransformed position whose data is to be stored **/
-	private static StateData getPosEntryAndRemoveBlock(ItemUseContext context, BlockPos pos)
+	@SuppressWarnings("unchecked")
+	private static StateData getPosEntryAndRemoveBlock(ItemUseContext context, BlockPos pos, BlockPos minYurt, BlockPos maxYurt)
 	{
 		CompoundNBT nbt = new CompoundNBT();
 		World world = context.getWorld();
@@ -311,7 +318,11 @@ player facing west first, then east
 		Rotation rotation = RotationUtil.getTransformRotation(context.getPlacementHorizontalFacing());
 		if (te != null)
 		{
-			te.write(nbt);
+			@SuppressWarnings("rawtypes")
+			// need raw type for this to compile, type correctness has been enforced elsewhere
+			BlockDataSerializer serializer = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
+				.getSerializer();
+			serializer.writeWithYurtContext(te, nbt, rotation, minYurt, maxYurt);
 		}
 		world.removeTileEntity(pos);
 		world.setBlockState(pos, Blocks.AIR.getDefaultState(), 0);	// don't notify block update on remove
@@ -403,7 +414,8 @@ player facing west first, then east
 			return this.state;
 		}
 
-		public void setBlockAndTE(World world, BlockPos pos, Rotation unrotation)
+		@SuppressWarnings("unchecked")
+		public void setBlockAndTE(World world, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt)
 		{
 			world.setBlockState(pos, this.state.rotate(unrotation));
 
@@ -412,8 +424,11 @@ player facing west first, then east
 				TileEntity te = world.getTileEntity(pos);
 				if (te != null)
 				{
-					te.read(this.state, this.tileEntityData);
-					// copying the data like this also overwrites the pos
+					// need raw types to get the data transformer to compile here
+					@SuppressWarnings("rawtypes")
+					BlockDataDeserializer x = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
+						.getDeserializer();
+					x.readWithYurtContext(te, this.tileEntityData, world, pos, this.state, unrotation, minYurt, maxYurt);
 					te.setWorldAndPos(world, pos);
 				}
 			}
