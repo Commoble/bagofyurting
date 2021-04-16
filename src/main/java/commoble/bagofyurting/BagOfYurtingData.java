@@ -17,9 +17,9 @@ import commoble.bagofyurting.CompressedBagOfYurtingData.CompressedStateData;
 import commoble.bagofyurting.api.BagOfYurtingAPI;
 import commoble.bagofyurting.api.BlockDataDeserializer;
 import commoble.bagofyurting.api.BlockDataSerializer;
+import commoble.bagofyurting.api.RotationUtil;
 import commoble.bagofyurting.api.internal.DataTransformers;
 import commoble.bagofyurting.util.NBTMapHelper;
-import commoble.bagofyurting.util.RotationUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.block.Block;
@@ -38,6 +38,7 @@ import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.MinecraftForge;
@@ -74,35 +75,44 @@ public class BagOfYurtingData
 		BlockPos origin = context.getPos();
 		Direction orientation = context.getPlacementHorizontalFacing();
 		World world = context.getWorld();
+		Rotation rotation = RotationUtil.getTransformRotation(orientation);
 
-		BlockPos vertexA = origin.add(-radius, 0, -radius);
-		BlockPos vertexB = origin.add(radius, 2*radius, radius);
-
-
+		BlockPos minYurt = origin.add(-radius, 0, -radius);
+		BlockPos maxYurt = origin.add(radius, 2*radius, radius);
 
 		// map each position in the loading area to a rotated offset from the player
 		// don't get any blocks that we aren't allowed to get
 
-		Map<BlockPos, Pair<BlockPos, StateData>> transformPairs = BlockPos.getAllInBox(vertexA, vertexB)
-			.filter(pos -> canBlockBeStored(canPlayerOverrideSafetyLists, context, pos))
-			.map(BlockPos::toImmutable)
+		// we need to change this up a bit to make the API work better
+		// currently, we write block data into yurt data when we remove each block, one at a time
+		// we want to first read all the relevant data, *then* remove all the blocks
+		List<Pair<BlockPos, Pair<BlockPos, StateData>>> transformPairs = BlockPos.getAllInBox(minYurt, maxYurt) // get every pos in yurt zone
+			.filter(pos -> canBlockBeStored(canPlayerOverrideSafetyLists, context, pos)) // only get the blocks the player can yurt
+			.map(BlockPos::toImmutable) // make sure positions are immutable since we're using them as map keys
 			.sorted(new BlockRemovalSorter(world))
-			.collect(Collectors.toMap(
-				pos -> pos,
-				// maps a blockpos in worldspace to a relative position based on origin pos and player facing
-				pos -> Pair.of(transformBlockPos(orientation, pos, origin), getPosEntryAndRemoveBlock(context, pos, vertexA, vertexB))));
+			.map(pos -> getTransformedPosAndStateData(world, pos, rotation, minYurt, maxYurt, origin))
+			.collect(Collectors.toList());
 
-		Map<BlockPos, StateData> transformData = transformPairs.values().stream()
-			.collect(Collectors.toMap(
-				pair -> pair.getLeft(),
-				pair -> pair.getRight()));
+		// now that we have all of the state data, we can safely remove the blocks
+		BlockState air = Blocks.AIR.getDefaultState();
+		transformPairs.forEach(pair ->
+		{
+			BlockPos pos = pair.getLeft();
+			world.removeTileEntity(pos);
+			world.setBlockState(pos, air, 0); // don't cause block updates until all of the blocks have been removed
+		});
+
+		List<BlockPos> removedPositions = transformPairs.stream().map(Pair::getLeft).collect(Collectors.toList());
+		Map<BlockPos, StateData> transformedData = transformPairs.stream()
+			.map(Pair::getRight)
+			.collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
 		if (transformPairs.size() > 0 && world instanceof ServerWorld)
 		{
-			doPoofEffects((ServerWorld) world, transformPairs.keySet());
+			doPoofEffects((ServerWorld) world, removedPositions);
 
 			// we don't cause block updates while removing blocks, wait until the end and then notify all blocks at once
-			for (Entry<BlockPos, Pair<BlockPos, StateData>> entry : transformPairs.entrySet())
+			for (Pair<BlockPos, Pair<BlockPos, StateData>> entry : transformPairs)
 			{
 				BlockPos pos = entry.getKey();
 				BlockState oldState = entry.getValue().getRight().state;
@@ -110,7 +120,7 @@ public class BagOfYurtingData
 			}
 		}
 
-		return new BagOfYurtingData(transformData);
+		return new BagOfYurtingData(transformedData);
 	}
 
 	private static void sendBlockUpdateAfterRemoval(World world, BlockPos pos, BlockState oldState)
@@ -133,11 +143,18 @@ public class BagOfYurtingData
 		Rotation unrotation = RotationUtil.getUntransformRotation(orientation);
 		PlayerEntity player = context.getPlayer();
 		boolean canPlayerOverrideSafetyLists = canPlayerOverrideSafetyLists(player);
+		
+		// we want to do things in this order:
+			// collect all of the data to place
+			// make sure ALL of the data is placeable (don't unload the bag if we can't)
+			// set all of the blocks at once
+			// write all of the extant TE data
 
+		// collect all of the data to place
 		Map<BlockPos, StateData> worldPositions = this.map.entrySet()
 			.stream()
 			.collect(Collectors.toMap(
-				entry -> untransformBlockPos(unrotation, entry.getKey(), origin), // untransform transformed offset
+				entry -> RotationUtil.untransformBlockPos(unrotation, entry.getKey(), origin), // untransform transformed offset
 				entry -> entry.getValue()));
 
 		// make sure all blocks we want to place are placeable
@@ -149,9 +166,14 @@ public class BagOfYurtingData
 		{
 			BlockPos minYurt = origin.add(-radius,0,-radius);
 			BlockPos maxYurt = origin.add(radius,2*radius,radius);
-			worldPositions.entrySet().stream()
+			
+			// set all of the blocks at once, then set all of the block entity data at once
+			List<Entry<BlockPos, StateData>> worldPositionList = worldPositions.entrySet().stream()
 				.sorted(BlockUnloadSorter.INSTANCE)
-				.forEach(entry -> entry.getValue().setBlockAndTE(world, entry.getKey(), unrotation, minYurt, maxYurt));
+				.collect(Collectors.toList());
+			
+			worldPositionList.forEach(entry -> entry.getValue().setBlockIntoWorld(world, entry.getKey(), unrotation));
+			worldPositionList.forEach(entry -> entry.getValue().setBlockEntityData(world, entry.getKey(), unrotation, minYurt, maxYurt));
 
 			if (world instanceof ServerWorld)
 			{
@@ -266,68 +288,52 @@ public class BagOfYurtingData
 		return !event.isCanceled();
 	}
 
-	/**
-	 * First, we take the offset of the block pos relative to the origin of the yurt
-	 *
-	 * Second, we rotate this offset around the origin's y-axis
-	 *
-	 * The rotation is the difference angle between the player's orientation and some constant direction
-	 *
-	 * The difference when we unload the yurt is reversed from the difference when we load the yurt (b-a instead of a-b)
-	 *
-	 * The result is that when we unload, the rotation of the yurt relative to the player is preserved
-	 *
-	 * some examples:
-	 *
-player facing south both times -- no rotation
-player facing west both times -- first rotate 90 degrees, then -90 degrees -- no rotation
-
-player facing south first, then west
-	first -- no rotation -- block offsets are original positions
-	second -- rotate from SOUTH to WEST = +90 degrees
-	a block that was originally south of the player will now be west of the player
-	a block that was originally in front of the player will still be in front of the player
-
-player facing west first, then east
-	first -- rotate from west to south -- -90 degrees
-	second -- rotate from south to east -- -90 degrees
-	all blocks will be rotated 180 degrees around the player
-	 */
-	private static BlockPos transformBlockPos(Direction orientation, BlockPos pos, BlockPos origin)
+//	/** The position here is the untransformed position whose data is to be stored **/
+//	@SuppressWarnings("unchecked")
+//	private static StateData getPosEntryAndRemoveBlock(ItemUseContext context, BlockPos pos, BlockPos minYurt, BlockPos maxYurt)
+//	{
+//		CompoundNBT nbt = new CompoundNBT();
+//		World world = context.getWorld();
+//		BlockState state = world.getBlockState(pos);
+//		TileEntity te = world.getTileEntity(pos);
+//		Rotation rotation = RotationUtil.getTransformRotation(context.getPlacementHorizontalFacing());
+//		if (te != null)
+//		{
+//			@SuppressWarnings("rawtypes")
+//			// need raw type for this to compile, type correctness has been enforced elsewhere
+//			BlockDataSerializer serializer = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
+//				.getSerializer();
+//			serializer.writeWithYurtContext(te, nbt, rotation, minYurt, maxYurt);
+//		}
+//		world.removeTileEntity(pos);
+//		world.setBlockState(pos, Blocks.AIR.getDefaultState(), 0);	// don't notify block update on remove
+//		return new StateData(state.rotate(rotation), nbt);
+//
+//	}
+	
+	private static Pair<BlockPos, Pair<BlockPos, StateData>> getTransformedPosAndStateData(IWorld world, BlockPos absolutePos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
 	{
-		BlockPos offset = pos.subtract(origin);	// the difference between the given pos and the yurt origin
-
-		return offset.rotate(RotationUtil.getTransformRotation(orientation));
+		BlockPos transformedPos = RotationUtil.transformBlockPos(rotation, absolutePos, origin);
+		StateData stateData = getYurtedStateData(world, absolutePos, rotation, minYurt, maxYurt, origin, transformedPos);
+		return Pair.of(absolutePos, Pair.of(transformedPos, stateData));
 	}
-
-	private static BlockPos untransformBlockPos(Rotation unrotation, BlockPos offset, BlockPos origin)
-	{
-		BlockPos unRotatedOffset = offset.rotate(unrotation);
-
-		return origin.add(unRotatedOffset);
-	}
-
-	/** The position here is the untransformed position whose data is to be stored **/
+	
 	@SuppressWarnings("unchecked")
-	private static StateData getPosEntryAndRemoveBlock(ItemUseContext context, BlockPos pos, BlockPos minYurt, BlockPos maxYurt)
+	private static StateData getYurtedStateData(IWorld world, BlockPos pos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin, BlockPos transformedPos)
 	{
 		CompoundNBT nbt = new CompoundNBT();
-		World world = context.getWorld();
 		BlockState state = world.getBlockState(pos);
+		BlockState rotatedState = state.rotate(world, pos, rotation);
 		TileEntity te = world.getTileEntity(pos);
-		Rotation rotation = RotationUtil.getTransformRotation(context.getPlacementHorizontalFacing());
 		if (te != null)
 		{
 			@SuppressWarnings("rawtypes")
 			// need raw type for this to compile, type correctness has been enforced elsewhere
 			BlockDataSerializer serializer = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
 				.getSerializer();
-			serializer.writeWithYurtContext(te, nbt, rotation, minYurt, maxYurt);
+			serializer.writeWithYurtContext(te, nbt, rotation, minYurt, maxYurt, origin, transformedPos);
 		}
-		world.removeTileEntity(pos);
-		world.setBlockState(pos, Blocks.AIR.getDefaultState(), 0);	// don't notify block update on remove
-		return new StateData(state.rotate(rotation), nbt);
-
+		return new StateData(rotatedState, nbt);
 	}
 
 	private static boolean canBlockBeUnloadedAt(boolean canPlayerOverrideSafetyLists, BlockPos pos, World world)
@@ -413,12 +419,15 @@ player facing west first, then east
 		{
 			return this.state;
 		}
-
-		@SuppressWarnings("unchecked")
-		public void setBlockAndTE(World world, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt)
+		
+		public void setBlockIntoWorld(World world, BlockPos pos, Rotation unrotation)
 		{
 			world.setBlockState(pos, this.state.rotate(unrotation));
-
+		}
+		
+		@SuppressWarnings("unchecked")
+		public void setBlockEntityData(World world, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt)
+		{
 			if (!this.tileEntityData.isEmpty())
 			{
 				TileEntity te = world.getTileEntity(pos);

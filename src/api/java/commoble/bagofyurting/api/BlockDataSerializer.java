@@ -9,8 +9,7 @@ public interface BlockDataSerializer<T>
 {
 	/**
 	 * Function that writes a blockentity's data into the supplied compoundNBT.
-	 * This is called just before the relevant block is removed from the world, and is only called if the relevant block will
-	 * be removed from the world. Other blocks in the yurt region may or may not have already been removed.
+	 * This is called after what-blocks-to-remove are determined, but before any blocks are actually removed from the world.
 	 * While it is not strictly required that this function have no effects other than writing data to the given nbt compound,
 	 * implementers should avoid setting blockstates in the world from this function.
 	 * @param blockEntity The blockentity instance being yurted. Has world/pos/state context if needed.
@@ -18,12 +17,11 @@ public interface BlockDataSerializer<T>
 	 * This should be a standard-format blockentity compound; if no BlockDataSerializer is assigned to the relevant tile entity type,
 	 * then TileEntity::write is used by default instead.
 	 * The rotation should be applied to any rotation-sensitive data.
-	 * If the blockentity is storing any positions that must be translated when the block is moved with a bag of yurting,
-	 * it is recommended that the blockentity's position be subtracted when the data is serialized, and added when the data is
-	 * deserialized. 
 	 * @param rotation A rotation that should be applied to any rotation-sensitive data.
 	 * @param minYurt The minimal corner of the yurt region.
 	 * @param maxYurt The maximal corner of the yurt region.
+	 * @param origin The blockpos in absolute worldspace that the bag of yurting was used on (the bottom center of the yurt region)
+	 * @param newOffset The position that the translated-and-rotated te position will be stored as in yurt data (as an offset relative to the 0,0,0 origin)
 	 */
-	public void writeWithYurtContext(T blockEntity, CompoundNBT nbt, Rotation rotation, BlockPos minYurt, BlockPos maxYurt);
+	public void writeWithYurtContext(T blockEntity, CompoundNBT nbt, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin, BlockPos newOffset);
 }

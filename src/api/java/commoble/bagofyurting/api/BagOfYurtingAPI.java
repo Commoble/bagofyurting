@@ -11,7 +11,7 @@ public class BagOfYurtingAPI
 	 * when no transformer is assigned to a type
 	 */
 	public static final BlockDataTransformer<?> DEFAULT_TRANSFORMER = new BlockDataTransformer<>(
-		(te, nbt, rotation, min, max) -> te.write(nbt),
+		(te, nbt, rotation, min, max, origin, transformedOffset) -> te.write(nbt),
 		(te, nbt, world, pos, state, rotation, min, max) -> te.read(state, nbt));
 	
 	/**

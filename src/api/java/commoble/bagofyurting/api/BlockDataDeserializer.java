@@ -29,6 +29,8 @@ public interface BlockDataDeserializer<T>
 	 * @param rotation A rotation to apply to any rotation-sensitive data in the blockentity.
 	 * @param minYurt The minimal corner of the yurt region being placed into the world.
 	 * @param maxYurt The maximal corner of the yurt region being placed into the world
+	 * @param origin The position that the bag of yurting was used at to unload blocks (the bottom-center of the yurting region)
+	 * 
 	 */
 	public void readWithYurtContext(T blockEntity, CompoundNBT input, World world, BlockPos pos, BlockState state, Rotation rotation, BlockPos minYurt, BlockPos maxYurt);
 }
