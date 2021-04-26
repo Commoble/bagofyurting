@@ -173,7 +173,7 @@ public class BagOfYurtingData
 				.collect(Collectors.toList());
 			
 			worldPositionList.forEach(entry -> entry.getValue().setBlockIntoWorld(world, entry.getKey(), unrotation));
-			worldPositionList.forEach(entry -> entry.getValue().setBlockEntityData(world, entry.getKey(), unrotation, minYurt, maxYurt));
+			worldPositionList.forEach(entry -> entry.getValue().setBlockEntityData(world, entry.getKey(), unrotation, minYurt, maxYurt, origin));
 
 			if (world instanceof ServerWorld)
 			{
@@ -426,7 +426,7 @@ public class BagOfYurtingData
 		}
 		
 		@SuppressWarnings("unchecked")
-		public void setBlockEntityData(World world, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt)
+		public void setBlockEntityData(World world, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
 		{
 			if (!this.tileEntityData.isEmpty())
 			{
@@ -437,7 +437,7 @@ public class BagOfYurtingData
 					@SuppressWarnings("rawtypes")
 					BlockDataDeserializer x = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
 						.getDeserializer();
-					x.readWithYurtContext(te, this.tileEntityData, world, pos, this.state, unrotation, minYurt, maxYurt);
+					x.readWithYurtContext(te, this.tileEntityData, world, pos, this.state, unrotation, minYurt, maxYurt, origin);
 					te.setWorldAndPos(world, pos);
 				}
 			}

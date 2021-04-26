@@ -12,7 +12,7 @@ public class BagOfYurtingAPI
 	 */
 	public static final BlockDataTransformer<?> DEFAULT_TRANSFORMER = new BlockDataTransformer<>(
 		(te, nbt, rotation, min, max, origin, transformedOffset) -> te.write(nbt),
-		(te, nbt, world, pos, state, rotation, min, max) -> te.read(state, nbt));
+		(te, nbt, world, pos, state, rotation, min, max, origin) -> te.read(state, nbt));
 	
 	/**
 	 * Register block data transformers to a tile entity type. Call this during FMLCommonSetupEvent.

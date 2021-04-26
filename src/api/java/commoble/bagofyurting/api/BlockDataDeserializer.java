@@ -32,5 +32,5 @@ public interface BlockDataDeserializer<T>
 	 * @param origin The position that the bag of yurting was used at to unload blocks (the bottom-center of the yurting region)
 	 * 
 	 */
-	public void readWithYurtContext(T blockEntity, CompoundNBT input, World world, BlockPos pos, BlockState state, Rotation rotation, BlockPos minYurt, BlockPos maxYurt);
+	public void readWithYurtContext(T blockEntity, CompoundNBT input, World world, BlockPos pos, BlockState state, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin);
 }
