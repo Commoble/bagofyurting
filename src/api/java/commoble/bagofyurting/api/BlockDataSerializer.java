@@ -10,8 +10,6 @@ public interface BlockDataSerializer<T>
 	/**
 	 * Function that writes a blockentity's data into the supplied compoundNBT.
 	 * This is called after what-blocks-to-remove are determined, but before any blocks are actually removed from the world.
-	 * While it is not strictly required that this function have no effects other than writing data to the given nbt compound,
-	 * implementers should avoid setting blockstates in the world from this function.
 	 * @param blockEntity The blockentity instance being yurted. Has world/pos/state context if needed.
 	 * @param nbt An empty nbt compound that the implementer should write data into.
 	 * This should be a standard-format blockentity compound; if no BlockDataSerializer is assigned to the relevant tile entity type,

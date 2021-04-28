@@ -12,8 +12,7 @@ public interface BlockDataDeserializer<T>
 	/**
 	 * Function that reads a standard-format blockentity compound into the given blockentity, applying transformations
 	 * from yurt context if necessary. This function is called for each blockentity that becomes unyurted into the world,
-	 * just after the block and blockentity are placed into the world but before the blockentity instance's world and
-	 * pos fields are set.
+	 * after all blocks and blockentities have been placed into the world.
 	 * 
 	 * Be aware that minYurt and maxYurt are based on the yurting radius of the bag item, and the area defined by them
 	 * may be larger than the area actually changed during the unyurting.
