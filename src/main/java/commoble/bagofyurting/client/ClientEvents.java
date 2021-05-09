@@ -2,8 +2,10 @@ package commoble.bagofyurting.client;
 
 import commoble.bagofyurting.BagOfYurtingMod;
 import commoble.bagofyurting.IsWasSprintPacket;
+import commoble.bagofyurting.OptionalSpawnParticlePacket;
 import commoble.bagofyurting.util.ConfigHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.network.play.ClientPlayNetHandler;
 import net.minecraft.item.IDyeableArmorItem;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.event.TickEvent.ClientTickEvent;
@@ -51,5 +53,15 @@ public class ClientEvents
 	public static boolean canSpawnBagParticles()
 	{
 		return config.enableParticles.get();
+	}
+	
+	public static void onHandleOptionalSpawnParticlePacket(OptionalSpawnParticlePacket packet)
+	{
+		Minecraft mc = Minecraft.getInstance();
+		ClientPlayNetHandler handler = mc.getConnection();
+		if (handler != null)
+		{
+			packet.processPacket(handler);
+		}
 	}
 }

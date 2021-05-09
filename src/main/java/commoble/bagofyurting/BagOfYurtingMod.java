@@ -99,6 +99,11 @@ public class BagOfYurtingMod
 			IsWasSprintPacket::write,
 			IsWasSprintPacket::read,
 			IsWasSprintPacket::handle);
+		CHANNEL.registerMessage(packetID++,
+			OptionalSpawnParticlePacket.class,
+			OptionalSpawnParticlePacket::write,
+			OptionalSpawnParticlePacket::read,
+			OptionalSpawnParticlePacket::handle);
 	}
 	
 	void onModloadingComplete(FMLLoadCompleteEvent event)
