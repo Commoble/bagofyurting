@@ -21,13 +21,14 @@ dependencies {
 ```
 
 Where
-* `{$bagofyurting_branch}` is e.g. `bagofyurting-1.16.4`
-* `{$bagofyurting_version}` is e.g. `1.2.0.0`
+* `{$bagofyurting_branch}` is e.g. `bagofyurting-1.17.1`
+* `{$bagofyurting_version}` is e.g. `2.0.0.0`
 
 The API is only available on branches `bagofyurting-1.16.4` and newer and versions `1.2.0.0` and newer.
 
 A debug jar with full sources is available for easier debugging, which can be used by compiling against :debug instead of :api.
-It is not recommended to compile against the debug jar when building production jars, as binary-breaking changes are more likely to occur with it.
+Compiling against the debug jar grants more access to Bag of Yurting internals, but no guarantee is made that no binary-breaking changes will be made to the debug jar.
+Compiling against the API jar is recommended if the debug jar is not needed.
 
 More documentation on Bag of Yurting is available on the github wiki:
 

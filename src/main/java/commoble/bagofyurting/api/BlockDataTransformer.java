@@ -1,8 +1,8 @@
 package commoble.bagofyurting.api;
 
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
-public class BlockDataTransformer<T extends TileEntity>
+public class BlockDataTransformer<T extends BlockEntity>
 {
 	private final BlockDataSerializer<? super T> serializer;
 	public BlockDataSerializer<? super T> getSerializer() { return this.serializer; }

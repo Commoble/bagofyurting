@@ -22,25 +22,25 @@ import commoble.bagofyurting.api.internal.DataTransformers;
 import commoble.bagofyurting.util.NBTMapHelper;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.NBTUtil;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Rotation;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.BlockSnapshot;
 import net.minecraftforge.common.util.FakePlayerFactory;
@@ -52,10 +52,10 @@ public class BagOfYurtingData
 	public static final String NBT_KEY = "yurtdata"; // For compat reasons
 	public static final Direction BASE_DIRECTION = Direction.SOUTH;	// south is arbitrarily chosen for having horizontal index 0
 
-	private static final NBTMapHelper<BlockPos, CompoundNBT, StateData, CompoundNBT> mapper = new NBTMapHelper<>(
+	private static final NBTMapHelper<BlockPos, CompoundTag, StateData, CompoundTag> mapper = new NBTMapHelper<>(
 		NBT_KEY,
-		NBTUtil::writeBlockPos,
-		NBTUtil::readBlockPos,
+		NbtUtils::writeBlockPos,
+		NbtUtils::readBlockPos,
 		StateData::write,
 		StateData::read);
 
@@ -66,19 +66,19 @@ public class BagOfYurtingData
 		this.map = map;
 	}
 
-	/** Removes blocks from the world and stores them as yurt data, returning the data **/
-	public static BagOfYurtingData yurtBlocksAndConvertToData(ItemUseContext context, int radius)
+	/** Removes blocks from the Level and stores them as yurt data, returning the data **/
+	public static BagOfYurtingData yurtBlocksAndConvertToData(UseOnContext context, int radius)
 	{
-		PlayerEntity player = context.getPlayer();
+		Player player = context.getPlayer();
 		boolean canPlayerOverrideSafetyLists = canPlayerOverrideSafetyLists(player);
 		// this is the block that the player used the item on
-		BlockPos origin = context.getPos();
-		Direction orientation = context.getPlacementHorizontalFacing();
-		World world = context.getWorld();
+		BlockPos origin = context.getClickedPos();
+		Direction orientation = context.getHorizontalDirection();
+		Level level = context.getLevel();
 		Rotation rotation = RotationUtil.getTransformRotation(orientation);
 
-		BlockPos minYurt = origin.add(-radius, 0, -radius);
-		BlockPos maxYurt = origin.add(radius, 2*radius, radius);
+		BlockPos minYurt = origin.offset(-radius, 0, -radius);
+		BlockPos maxYurt = origin.offset(radius, 2*radius, radius);
 
 		// map each position in the loading area to a rotated offset from the player
 		// don't get any blocks that we aren't allowed to get
@@ -86,20 +86,20 @@ public class BagOfYurtingData
 		// we need to change this up a bit to make the API work better
 		// currently, we write block data into yurt data when we remove each block, one at a time
 		// we want to first read all the relevant data, *then* remove all the blocks
-		List<Pair<BlockPos, Pair<BlockPos, StateData>>> transformPairs = BlockPos.getAllInBox(minYurt, maxYurt) // get every pos in yurt zone
+		List<Pair<BlockPos, Pair<BlockPos, StateData>>> transformPairs = BlockPos.betweenClosedStream(minYurt, maxYurt) // get every pos in yurt zone
 			.filter(pos -> canBlockBeStored(canPlayerOverrideSafetyLists, context, pos)) // only get the blocks the player can yurt
-			.map(BlockPos::toImmutable) // make sure positions are immutable since we're using them as map keys
-			.sorted(new BlockRemovalSorter(world))
-			.map(pos -> getTransformedPosAndStateData(world, pos, rotation, minYurt, maxYurt, origin))
+			.map(BlockPos::immutable) // make sure positions are immutable since we're using them as map keys
+			.sorted(new BlockRemovalSorter(level))
+			.map(pos -> getTransformedPosAndStateData(level, pos, rotation, minYurt, maxYurt, origin))
 			.collect(Collectors.toList());
 
 		// now that we have all of the state data, we can safely remove the blocks
-		BlockState air = Blocks.AIR.getDefaultState();
+		BlockState air = Blocks.AIR.defaultBlockState();
 		transformPairs.forEach(pair ->
 		{
 			BlockPos pos = pair.getLeft();
-			world.removeTileEntity(pos);
-			world.setBlockState(pos, air, 0); // don't cause block updates until all of the blocks have been removed
+			level.removeBlockEntity(pos);
+			level.setBlock(pos, air, 0); // don't cause block updates until all of the blocks have been removed
 		});
 
 		List<BlockPos> removedPositions = transformPairs.stream().map(Pair::getLeft).collect(Collectors.toList());
@@ -107,41 +107,41 @@ public class BagOfYurtingData
 			.map(Pair::getRight)
 			.collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
-		if (transformPairs.size() > 0 && world instanceof ServerWorld)
+		if (transformPairs.size() > 0 && level instanceof ServerLevel serverLevel)
 		{
-			doPoofEffects((ServerWorld) world, removedPositions);
+			doPoofEffects(serverLevel, removedPositions);
 
 			// we don't cause block updates while removing blocks, wait until the end and then notify all blocks at once
 			for (Pair<BlockPos, Pair<BlockPos, StateData>> entry : transformPairs)
 			{
 				BlockPos pos = entry.getKey();
 				BlockState oldState = entry.getValue().getRight().state;
-				sendBlockUpdateAfterRemoval(world, pos, oldState);
+				sendBlockUpdateAfterRemoval(level, pos, oldState);
 			}
 		}
 
 		return new BagOfYurtingData(transformedData);
 	}
 
-	private static void sendBlockUpdateAfterRemoval(World world, BlockPos pos, BlockState oldState)
+	private static void sendBlockUpdateAfterRemoval(Level level, BlockPos pos, BlockState oldState)
 	{
-		world.notifyBlockUpdate(pos, oldState, Blocks.AIR.getDefaultState(), 3);
-		world.notifyNeighborsOfStateChange(pos, oldState.getBlock());
+		level.sendBlockUpdated(pos, oldState, Blocks.AIR.defaultBlockState(), 3);
+		level.updateNeighborsAt(pos, oldState.getBlock());
 	}
 
-	public boolean attemptUnloadIntoWorld(ItemUseContext context, int radius)
+	public boolean attemptUnloadIntoLevel(UseOnContext context, int radius)
 	{
-		World world = context.getWorld();
+		Level level = context.getLevel();
 
 		// this is the block adjacent to the face that the player used the item on
 		// unless the block we use it on is replaceable
 		// in which case the origin is that block
-		BlockPos hitPos = context.getPos();
-		boolean hitBlockReplaceable = (world.getBlockState(hitPos).getMaterial().isReplaceable());
-		BlockPos origin = hitBlockReplaceable ? hitPos : hitPos.offset(context.getFace());
-		Direction orientation = context.getPlacementHorizontalFacing();
+		BlockPos hitPos = context.getClickedPos();
+		boolean hitBlockReplaceable = (level.getBlockState(hitPos).getMaterial().isReplaceable());
+		BlockPos origin = hitBlockReplaceable ? hitPos : hitPos.relative(context.getClickedFace());
+		Direction orientation = context.getHorizontalDirection();
 		Rotation unrotation = RotationUtil.getUntransformRotation(orientation);
-		PlayerEntity player = context.getPlayer();
+		Player player = context.getPlayer();
 		boolean canPlayerOverrideSafetyLists = canPlayerOverrideSafetyLists(player);
 		
 		// we want to do things in this order:
@@ -151,70 +151,70 @@ public class BagOfYurtingData
 			// write all of the extant TE data
 
 		// collect all of the data to place
-		Map<BlockPos, StateData> worldPositions = this.map.entrySet()
+		Map<BlockPos, StateData> LevelPositions = this.map.entrySet()
 			.stream()
 			.collect(Collectors.toMap(
 				entry -> RotationUtil.untransformBlockPos(unrotation, entry.getKey(), origin), // untransform transformed offset
 				entry -> entry.getValue()));
 
 		// make sure all blocks we want to place are placeable
-		boolean success = worldPositions.entrySet().stream()
-			.allMatch(entry -> canBlockBeUnloadedAt(canPlayerOverrideSafetyLists, entry.getKey(), world))
-			&& doesPlaceEventSucceed(context, world, player, worldPositions);
+		boolean success = LevelPositions.entrySet().stream()
+			.allMatch(entry -> canBlockBeUnloadedAt(canPlayerOverrideSafetyLists, entry.getKey(), level))
+			&& doesPlaceEventSucceed(context, level, player, LevelPositions);
 
 		if (success)
 		{
-			BlockPos minYurt = origin.add(-radius,0,-radius);
-			BlockPos maxYurt = origin.add(radius,2*radius,radius);
+			BlockPos minYurt = origin.offset(-radius,0,-radius);
+			BlockPos maxYurt = origin.offset(radius,2*radius,radius);
 			
 			// set all of the blocks at once, then set all of the block entity data at once
-			List<Entry<BlockPos, StateData>> worldPositionList = worldPositions.entrySet().stream()
+			List<Entry<BlockPos, StateData>> LevelPositionList = LevelPositions.entrySet().stream()
 				.sorted(BlockUnloadSorter.INSTANCE)
 				.collect(Collectors.toList());
 			
-			worldPositionList.forEach(entry -> entry.getValue().setBlockIntoWorld(world, entry.getKey(), unrotation));
-			worldPositionList.forEach(entry -> entry.getValue().setBlockEntityData(world, entry.getKey(), unrotation, minYurt, maxYurt, origin));
+			LevelPositionList.forEach(entry -> entry.getValue().setBlockIntoLevel(level, entry.getKey(), unrotation));
+			LevelPositionList.forEach(entry -> entry.getValue().setBlockEntityData(level, entry.getKey(), unrotation, minYurt, maxYurt, origin));
 
-			if (world instanceof ServerWorld)
+			if (level instanceof ServerLevel)
 			{
-				doPoofEffects((ServerWorld)world, worldPositions.keySet());
+				doPoofEffects((ServerLevel)level, LevelPositions.keySet());
 			}
 		}
 
 		return success;
 	}
 
-	public static final AxisAlignedBB EMPTY_AABB = new AxisAlignedBB(0,0,0,0,0,0);
+	public static final AABB EMPTY_AABB = new AABB(0,0,0,0,0,0);
 
-	private static void doPoofEffects(ServerWorld world, Collection<BlockPos> changedPositions)
+	private static void doPoofEffects(ServerLevel Level, Collection<BlockPos> changedPositions)
 	{
-		AxisAlignedBB aabb = changedPositions.stream()
-			.map(AxisAlignedBB::new)
-			.reduce(AxisAlignedBB::union)
+		AABB aabb = changedPositions.stream()
+			.map(AABB::new)
+			.reduce(AABB::minmax)
 			.orElse(EMPTY_AABB);
-		if (aabb.getAverageEdgeLength() > 0.5D)
+		if (aabb.getSize() > 0.5D)
 		{
-			Vector3d center = aabb.getCenter();
-			double xRadius = aabb.getXSize()*0.5;
-			double yRadius = aabb.getYSize()*0.5;
-			double zRadius = aabb.getZSize()*0.5;
+			Vec3 center = aabb.getCenter();
+			double xRadius = aabb.getXsize()*0.5;
+			double yRadius = aabb.getYsize()*0.5;
+			double zRadius = aabb.getZsize()*0.5;
 
 			double volume = xRadius * yRadius * zRadius * 8D;
 
 			int particles = Math.max(5000, (int)volume*5);
 
-			world.playSound(null, new BlockPos(center), SoundEvents.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 1, 1f);
+			Level.playSound(null, new BlockPos(center), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1, 1f);
 
-			OptionalSpawnParticlePacket.spawnParticlesFromServer(world, ParticleTypes.EXPLOSION, center.getX(), center.getY(), center.getZ(), particles, xRadius, yRadius, zRadius, 0);
+			OptionalSpawnParticlePacket.spawnParticlesFromServer(Level, ParticleTypes.EXPLOSION, center.x(), center.y(), center.z(), particles, xRadius, yRadius, zRadius, 0);
 
 		}
 	}
 	
-	private static boolean canPlayerOverrideSafetyLists(@Nullable PlayerEntity player)
+	private static boolean canPlayerOverrideSafetyLists(@Nullable Player player)
 	{
-		if (player != null && (player.isCreative() || player.hasPermissionLevel(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
+		if (player != null && (player.isCreative() || player.hasPermissions(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
 		{
-			return TransientPlayerData.isPlayerOverridingSafetyList(PlayerEntity.getUUID(player.getGameProfile()));
+			return TransientPlayerData.isPlayerOverridingSafetyList(Player.createPlayerUUID(player.getGameProfile()));
 		}
 		else
 		{
@@ -222,15 +222,15 @@ public class BagOfYurtingData
 		}
 	}
 
-	private static boolean canBlockBeStored(boolean canPlayerOverrideSafetyLists, ItemUseContext context, BlockPos pos)
+	private static boolean canBlockBeStored(boolean canPlayerOverrideSafetyLists, UseOnContext context, BlockPos pos)
 	{
-		World world = context.getWorld();
-		BlockState state = world.getBlockState(pos);
-		PlayerEntity player = context.getPlayer();
-		return !state.isAir(context.getWorld(), pos)
-			&& !World.isOutsideBuildHeight(pos)
+		Level Level = context.getLevel();
+		BlockState state = Level.getBlockState(pos);
+		Player player = context.getPlayer();
+		return !state.isAir()
+			&& !Level.isOutsideBuildHeight(pos)
 			&& isBlockYurtingAllowedByTags(canPlayerOverrideSafetyLists, state, pos)
-			&& doesBreakEventSucceed(world, pos, state, player);
+			&& doesBreakEventSucceed(Level, pos, state, player);
 	}
 
 	/**
@@ -248,41 +248,41 @@ public class BagOfYurtingData
 			Block block = state.getBlock();
 			// tags allow this block if the block isn't blacklisted, and if either the whitelist contains the block or is empty
 			return (!TagWrappers.blacklist.contains(block))
-				&& (TagWrappers.whitelist.getAllElements().isEmpty() || TagWrappers.whitelist.contains(block));
+				&& (TagWrappers.whitelist.getValues().isEmpty() || TagWrappers.whitelist.contains(block));
 		}
 	}
 
-	private static boolean doesBreakEventSucceed(World world, BlockPos pos, BlockState state, PlayerEntity player)
+	private static boolean doesBreakEventSucceed(Level Level, BlockPos pos, BlockState state, Player player)
 	{
-		if (!(world instanceof ServerWorld))
+		if (!(Level instanceof ServerLevel))
 		{
 			return false;
 		}
 		// item use context can have null player
 		// but break event requires nonnull player
 		// so we use a fake player if player is null
-		PlayerEntity eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerWorld)world);
-		BreakEvent event = new BreakEvent(world, pos, state, eventPlayer);
+		Player eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerLevel)Level);
+		BreakEvent event = new BreakEvent(Level, pos, state, eventPlayer);
 		MinecraftForge.EVENT_BUS.post(event);
 		return !event.isCanceled();
 	}
 
-	private static boolean doesPlaceEventSucceed(ItemUseContext context, World world, PlayerEntity player, Map<BlockPos, StateData> worldPositions)
+	private static boolean doesPlaceEventSucceed(UseOnContext context, Level level, Player player, Map<BlockPos, StateData> levelPositions)
 	{
-		if (!(world instanceof ServerWorld))
+		if (!(level instanceof ServerLevel))
 		{
 			return false;
 		}
 		// item use context can have null player
 		// but break event requires nonnull player
 		// so we use a fake player if player is null
-		PlayerEntity eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerWorld)world);
-		List<BlockSnapshot> snapshots = worldPositions.keySet().stream()
-			.map(pos -> BlockSnapshot.create(world.getDimensionKey(), world, pos))
+		Player eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerLevel)level);
+		List<BlockSnapshot> snapshots = levelPositions.keySet().stream()
+			.map(pos -> BlockSnapshot.create(level.dimension(), level, pos))
 			.collect(Collectors.toList());
 
 
-		BlockState statePlacedAgainst = world.getBlockState(context.getPos());
+		BlockState statePlacedAgainst = level.getBlockState(context.getClickedPos());
 		EntityMultiPlaceEvent event = new EntityMultiPlaceEvent(snapshots, statePlacedAgainst, eventPlayer);
 		MinecraftForge.EVENT_BUS.post(event);
 		return !event.isCanceled();
@@ -290,12 +290,12 @@ public class BagOfYurtingData
 
 //	/** The position here is the untransformed position whose data is to be stored **/
 //	@SuppressWarnings("unchecked")
-//	private static StateData getPosEntryAndRemoveBlock(ItemUseContext context, BlockPos pos, BlockPos minYurt, BlockPos maxYurt)
+//	private static StateData getPosEntryAndRemoveBlock(UseOnContext context, BlockPos pos, BlockPos minYurt, BlockPos maxYurt)
 //	{
-//		CompoundNBT nbt = new CompoundNBT();
-//		World world = context.getWorld();
-//		BlockState state = world.getBlockState(pos);
-//		TileEntity te = world.getTileEntity(pos);
+//		CompoundTag nbt = new CompoundTag();
+//		Level Level = context.getLevel();
+//		BlockState state = Level.getBlockState(pos);
+//		BlockEntity te = Level.getBlockEntity(pos);
 //		Rotation rotation = RotationUtil.getTransformRotation(context.getPlacementHorizontalFacing());
 //		if (te != null)
 //		{
@@ -305,26 +305,26 @@ public class BagOfYurtingData
 //				.getSerializer();
 //			serializer.writeWithYurtContext(te, nbt, rotation, minYurt, maxYurt);
 //		}
-//		world.removeTileEntity(pos);
-//		world.setBlockState(pos, Blocks.AIR.getDefaultState(), 0);	// don't notify block update on remove
+//		Level.removeBlockEntity(pos);
+//		Level.setBlockState(pos, Blocks.AIR.getDefaultState(), 0);	// don't notify block update on remove
 //		return new StateData(state.rotate(rotation), nbt);
 //
 //	}
 	
-	private static Pair<BlockPos, Pair<BlockPos, StateData>> getTransformedPosAndStateData(IWorld world, BlockPos absolutePos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
+	private static Pair<BlockPos, Pair<BlockPos, StateData>> getTransformedPosAndStateData(LevelAccessor Level, BlockPos absolutePos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
 	{
 		BlockPos transformedPos = RotationUtil.transformBlockPos(rotation, absolutePos, origin);
-		StateData stateData = getYurtedStateData(world, absolutePos, rotation, minYurt, maxYurt, origin, transformedPos);
+		StateData stateData = getYurtedStateData(Level, absolutePos, rotation, minYurt, maxYurt, origin, transformedPos);
 		return Pair.of(absolutePos, Pair.of(transformedPos, stateData));
 	}
 	
 	@SuppressWarnings("unchecked")
-	private static StateData getYurtedStateData(IWorld world, BlockPos pos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin, BlockPos transformedPos)
+	private static StateData getYurtedStateData(LevelAccessor Level, BlockPos pos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin, BlockPos transformedPos)
 	{
-		CompoundNBT nbt = new CompoundNBT();
-		BlockState state = world.getBlockState(pos);
-		BlockState rotatedState = state.rotate(world, pos, rotation);
-		TileEntity te = world.getTileEntity(pos);
+		CompoundTag nbt = new CompoundTag();
+		BlockState state = Level.getBlockState(pos);
+		BlockState rotatedState = state.rotate(Level, pos, rotation);
+		BlockEntity te = Level.getBlockEntity(pos);
 		if (te != null)
 		{
 			@SuppressWarnings("rawtypes")
@@ -336,7 +336,7 @@ public class BagOfYurtingData
 		return new StateData(rotatedState, nbt);
 	}
 
-	private static boolean canBlockBeUnloadedAt(boolean canPlayerOverrideSafetyLists, BlockPos pos, World world)
+	private static boolean canBlockBeUnloadedAt(boolean canPlayerOverrideSafetyLists, BlockPos pos, Level Level)
 	{
 		if (canPlayerOverrideSafetyLists)
 		{
@@ -344,14 +344,14 @@ public class BagOfYurtingData
 		}
 		else
 		{
-			BlockState oldState = world.getBlockState(pos);
-			return oldState.isAir(world, pos)
+			BlockState oldState = Level.getBlockState(pos);
+			return oldState.isAir()
 				|| TagWrappers.replaceable.contains(oldState.getBlock())
 				|| oldState.getMaterial().isReplaceable();
 		}
 	}
 
-	public static boolean doesNBTContainYurtData(CompoundNBT nbt)
+	public static boolean doesNBTContainYurtData(CompoundTag nbt)
 	{
 		return !nbt.getList(NBT_KEY, 10).isEmpty();
 	}
@@ -361,14 +361,14 @@ public class BagOfYurtingData
 		return this.map.isEmpty();
 	}
 
-	public CompoundNBT writeIntoNBT(CompoundNBT nbt)
+	public CompoundTag writeIntoNBT(CompoundTag nbt)
 	{
 		mapper.write(this.map, nbt);
 		return nbt;
 	}
 
 	/** Creates a new instance from an NBT compound. This assumes that the given nbt has the "yurt" key within **/
-	public static BagOfYurtingData read(CompoundNBT nbt)
+	public static BagOfYurtingData read(CompoundTag nbt)
 	{
 		return new BagOfYurtingData(mapper.read(nbt));
 	}
@@ -382,9 +382,9 @@ public class BagOfYurtingData
 		this.map.forEach((pos,stateData) ->
 		{
 			final BlockState state = stateData.state;
-			@Nullable CompoundNBT nbt = stateData.tileEntityData;
+			@Nullable CompoundTag nbt = stateData.BlockEntityData;
 			// uncompressed (old) format uses empty nbts if no data is present, compressed format uses optionals
-			final Optional<CompoundNBT> optionalNBT = nbt == null || nbt.isEmpty() ? Optional.empty() : Optional.of(nbt);
+			final Optional<CompoundTag> optionalNBT = nbt == null || nbt.isEmpty() ? Optional.empty() : Optional.of(nbt);
 			// if we haven't stored this specific blockstate yet,
 			// then add it to the state-list-pallette, and use its index in the list as that index
 			final int index = indexMap.computeIfAbsent(state, newState ->
@@ -407,12 +407,12 @@ public class BagOfYurtingData
 		public static final String TILE ="te";
 
 		private final @Nonnull BlockState state;
-		private final @Nonnull CompoundNBT tileEntityData;
+		private final @Nonnull CompoundTag BlockEntityData;
 
-		public StateData(@Nonnull BlockState state, @Nonnull CompoundNBT tileEntityData)
+		public StateData(@Nonnull BlockState state, @Nonnull CompoundTag BlockEntityData)
 		{
 			this.state = state;
-			this.tileEntityData = tileEntityData;
+			this.BlockEntityData = BlockEntityData;
 		}
 
 		public BlockState getState()
@@ -420,43 +420,43 @@ public class BagOfYurtingData
 			return this.state;
 		}
 		
-		public void setBlockIntoWorld(World world, BlockPos pos, Rotation unrotation)
+		public void setBlockIntoLevel(Level level, BlockPos pos, Rotation unrotation)
 		{
-			world.setBlockState(pos, this.state.rotate(unrotation));
+			level.setBlockAndUpdate(pos, this.state.rotate(unrotation));
 		}
 		
 		@SuppressWarnings("unchecked")
-		public void setBlockEntityData(World world, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
+		public void setBlockEntityData(Level level, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
 		{
-			if (!this.tileEntityData.isEmpty())
+			if (!this.BlockEntityData.isEmpty())
 			{
-				TileEntity te = world.getTileEntity(pos);
+				BlockEntity te = level.getBlockEntity(pos);
 				if (te != null)
 				{
 					// need raw types to get the data transformer to compile here
 					@SuppressWarnings("rawtypes")
 					BlockDataDeserializer x = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
 						.getDeserializer();
-					x.readWithYurtContext(te, this.tileEntityData, world, pos, this.state, unrotation, minYurt, maxYurt, origin);
-					te.setWorldAndPos(world, pos);
+					x.readWithYurtContext(te, this.BlockEntityData, level, pos, this.state, unrotation, minYurt, maxYurt, origin);
+					te.setLevel(level);
 				}
 			}
 		}
 
-		public CompoundNBT write()
+		public CompoundTag write()
 		{
-			CompoundNBT nbt = new CompoundNBT();
+			CompoundTag nbt = new CompoundTag();
 
-			nbt.put(BLOCKSTATE, NBTUtil.writeBlockState(this.state));
-			nbt.put(TILE, this.tileEntityData);
+			nbt.put(BLOCKSTATE, NbtUtils.writeBlockState(this.state));
+			nbt.put(TILE, this.BlockEntityData);
 
 			return nbt;
 		}
 
-		public static StateData read(CompoundNBT nbt)
+		public static StateData read(CompoundTag nbt)
 		{
-			BlockState state = NBTUtil.readBlockState(nbt.getCompound(BLOCKSTATE));
-			CompoundNBT te = nbt.getCompound(TILE);
+			BlockState state = NbtUtils.readBlockState(nbt.getCompound(BLOCKSTATE));
+			CompoundTag te = nbt.getCompound(TILE);
 
 			return new StateData(state, te);
 		}

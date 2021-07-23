@@ -2,9 +2,9 @@ package commoble.bagofyurting;
 
 import java.util.function.Supplier;
 
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.fmllegacy.network.NetworkEvent;
 
 public class IsWasSprintPacket
 {
@@ -15,12 +15,12 @@ public class IsWasSprintPacket
 		this.isSprintHeld = isSprintHeld;
 	}
 
-	public void write(PacketBuffer buf)
+	public void write(FriendlyByteBuf buf)
 	{
 		buf.writeByte(this.isSprintHeld ? 1 : 0);
 	}
 
-	public static IsWasSprintPacket read(PacketBuffer buf)
+	public static IsWasSprintPacket read(FriendlyByteBuf buf)
 	{
 		return new IsWasSprintPacket(buf.readByte() > 0);
 	}
@@ -31,10 +31,10 @@ public class IsWasSprintPacket
 		// PlayerData needs to be threadsafed, packet handling is done on worker
 		// threads, delegate to main thread
 		context.enqueueWork(() -> {
-			ServerPlayerEntity player = context.getSender();
+			ServerPlayer player = context.getSender();
 			if (player != null)
 			{
-				TransientPlayerData.setOverridingSafetyList(player.getUniqueID(), this.isSprintHeld);
+				TransientPlayerData.setOverridingSafetyList(player.getUUID(), this.isSprintHeld);
 			}
 		});
 		context.setPacketHandled(true);

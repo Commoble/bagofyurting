@@ -1,8 +1,8 @@
 package commoble.bagofyurting.api;
 
-import net.minecraft.util.Direction;
-import net.minecraft.util.Rotation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Rotation;
 
 public class RotationUtil
 {
@@ -22,7 +22,7 @@ public class RotationUtil
 	
 	/**
 	 * Get the rotation Bag of Yurting uses to deserialize data consistently given the horizontal facing of the player
-	 * when they use the bag to unload blocks into the world
+	 * when they use the bag to unload blocks into the Level
 	 * @param orientation The facing of the player at the time of unloading-blocks-from-back. Must be a horizontal direction.
 	 * @return The rotation used to untransform positions when deserializing them
 	 */
@@ -43,7 +43,7 @@ public class RotationUtil
 	{
 		// e.g. if we are going from west to north,
 		// difference = 2 - 1 = 1 = Rotation.CLOCKWISE_90
-		int indexDifference = to.getHorizontalIndex() - from.getHorizontalIndex();
+		int indexDifference = to.get2DDataValue() - from.get2DDataValue();
 		
 		// java is weird about moduloing negative numbers, so make sure we're positive first
 		if (indexDifference < 0)
@@ -83,7 +83,7 @@ public class RotationUtil
 	 * degrees second -- rotate from south to east -- -90 degrees all blocks will be
 	 * rotated 180 degrees around the player
 	 * @param rotation the rotation we use to transform the block
-	 * @param pos The position (in absolute worldspace) we want to transform to a rotated offset to the origin 
+	 * @param pos The position (in absolute Levelspace) we want to transform to a rotated offset to the origin 
 	 * @param origin the origin to rotate pos around (usually the position a bag of yurting was used on)
 	 * @return pos as a rotated relative offset to the origin pos (pos is translated first and then rotated)
 	 */
@@ -95,17 +95,17 @@ public class RotationUtil
 	}
 
 	/**
-	 * Undoes the transformBlockPos function, converting a (relative) offset to an (absolute) origin to an absolute position in worldspace
+	 * Undoes the transformBlockPos function, converting a (relative) offset to an (absolute) origin to an absolute position in Levelspace
 	 * (applying the given rotation before transforming)
 	 * @param unrotation The rotation to apply to the offset
 	 * @param offset The relative offset to the origin pos
 	 * @param origin The absolute position we're rotating offset around
-	 * @return A position in absolute worldspace, consisting of the offset rotated around the origin by the specified rotation
+	 * @return A position in absolute Levelspace, consisting of the offset rotated around the origin by the specified rotation
 	 */
 	public static BlockPos untransformBlockPos(Rotation unrotation, BlockPos offset, BlockPos origin)
 	{
 		BlockPos unRotatedOffset = offset.rotate(unrotation);
 	
-		return origin.add(unRotatedOffset);
+		return origin.offset(unRotatedOffset);
 	}
 }

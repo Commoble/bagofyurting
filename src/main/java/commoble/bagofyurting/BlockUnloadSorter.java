@@ -4,7 +4,7 @@ import java.util.Comparator;
 import java.util.Map.Entry;
 
 import commoble.bagofyurting.BagOfYurtingData.StateData;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 
 public class BlockUnloadSorter implements Comparator<Entry<BlockPos, StateData>>
 {
@@ -21,7 +21,7 @@ public class BlockUnloadSorter implements Comparator<Entry<BlockPos, StateData>>
 	
 	private int getSortValue(Entry<BlockPos, StateData> entry)
 	{
-		return entry.getKey().getY()*2 + (entry.getValue().getState().isSolid() ? 0 : 1);
+		return entry.getKey().getY()*2 + (entry.getValue().getState().canOcclude() ? 0 : 1);
 	}
 	
 }

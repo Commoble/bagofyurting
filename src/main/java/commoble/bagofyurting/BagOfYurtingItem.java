@@ -8,29 +8,29 @@ import javax.annotation.Nullable;
 
 import commoble.bagofyurting.storage.DataIdNBTHelper;
 import commoble.bagofyurting.storage.StorageManager;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.item.IDyeableArmorItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.DyeableLeatherItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
 /**
- * This item collapses a portion of the world into the item's internal storage
+ * This item collapses a portion of the Level into the item's internal storage
  * when used on a block. The area area stored in the item is determined by the
  * item's given radius. When used on a block on blockpos Q, the inclusive edges
  * of the cuboid to store are as follows: x = [Q.x - radius, Q.x + radius] y =
@@ -77,7 +77,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  * The minimum permission level to ignore these tags is adjustable in the mod's
  * server config. Players in creative mode always ignore these tags.
  */
-public class BagOfYurtingItem extends Item implements IDyeableArmorItem
+public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 {
 	public static final String RADIUS_KEY = "radius";
 	public static final int UNDYED_COLOR = 0xFFFFFF;
@@ -88,7 +88,7 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	}
 
 	@Override
-	public boolean hasEffect(ItemStack stack)
+	public boolean isFoil(ItemStack stack)
 	{
 		return getDataReader(stack) != null;
 	}
@@ -115,9 +115,9 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	 * 16 items)
 	 */
 	@Override
-	public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items)
+	public void fillItemCategory(CreativeModeTab group, NonNullList<ItemStack> items)
 	{
-		if (this.isInGroup(group))
+		if (this.allowdedIn(group))
 		{
 			for (int i=0; i<7; i++)
 			{
@@ -134,7 +134,7 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	 */
 	public static @Nullable Function<MinecraftServer, BagOfYurtingData> getDataReader(ItemStack stack)
 	{
-		CompoundNBT nbt = stack.getOrCreateTag();
+		CompoundTag nbt = stack.getOrCreateTag();
 		if (DataIdNBTHelper.contains(nbt))
 		{
 			return server -> {
@@ -155,22 +155,22 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	@Override
 	public int getColor(ItemStack stack)
 	{
-		CompoundNBT compoundnbt = stack.getChildTag("display");
-		return compoundnbt != null && compoundnbt.contains("color", 99) ? compoundnbt.getInt("color") : UNDYED_COLOR;
+		CompoundTag CompoundTag = stack.getTagElement("display");
+		return CompoundTag != null && CompoundTag.contains("color", 99) ? CompoundTag.getInt("color") : UNDYED_COLOR;
 	}
 
 	@Override
-	public ActionResultType onItemUse(ItemUseContext context)
+	public InteractionResult useOn(UseOnContext context)
 	{
-		World world = context.getWorld();
-		if (world instanceof ServerWorld)
+		Level Level = context.getLevel();
+		if (Level instanceof ServerLevel)
 		{
 			// check NBT
 			// if NBT has data, attempt to unload contents
 			// otherwise, attempt to store contents
 
-			Function<MinecraftServer, BagOfYurtingData> dataGetter = getDataReader(context.getItem());
-			MinecraftServer server = ((ServerWorld)world).getServer();
+			Function<MinecraftServer, BagOfYurtingData> dataGetter = getDataReader(context.getItemInHand());
+			MinecraftServer server = ((ServerLevel)Level).getServer();
 
 			if (dataGetter == null)
 			{
@@ -182,13 +182,13 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			}
 		}
 
-		return ActionResultType.SUCCESS;
+		return InteractionResult.SUCCESS;
 	}
 
-	public void loadBag(MinecraftServer server, ItemUseContext context)
+	public void loadBag(MinecraftServer server, UseOnContext context)
 	{
-		Hand hand = context.getHand();
-		ItemStack oldStack = context.getPlayer().getHeldItem(hand);
+		InteractionHand hand = context.getHand();
+		ItemStack oldStack = context.getPlayer().getItemInHand(hand);
 		BagOfYurtingData data = BagOfYurtingData.yurtBlocksAndConvertToData(context, this.getRadius(oldStack));
 
 		if (!data.isEmpty())
@@ -197,36 +197,36 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			StorageManager.save(id, data);
 			ItemStack newStack = oldStack.copy();
 			DataIdNBTHelper.set(newStack.getOrCreateTag(), id);
-			context.getPlayer().setHeldItem(context.getHand(), newStack);
+			context.getPlayer().setItemInHand(context.getHand(), newStack);
 		}
 		else
 		{
-			context.getPlayer().sendStatusMessage(new TranslationTextComponent("bagofyurting.failure.load"), true);
+			context.getPlayer().displayClientMessage(new TranslatableComponent("bagofyurting.failure.load"), true);
 		}
 	}
 
-	public void unloadBag(ItemUseContext context, BagOfYurtingData data)
+	public void unloadBag(UseOnContext context, BagOfYurtingData data)
 	{
-		Hand hand = context.getHand();
-		ItemStack oldStack = context.getPlayer().getHeldItem(hand);
-		// attempt to revert unload bag into worldspace
-		boolean success = data.attemptUnloadIntoWorld(context, this.getRadius(oldStack));
+		InteractionHand hand = context.getHand();
+		ItemStack oldStack = context.getPlayer().getItemInHand(hand);
+		// attempt to revert unload bag into Levelspace
+		boolean success = data.attemptUnloadIntoLevel(context, this.getRadius(oldStack));
 
 		if (success)
 		{
 			ItemStack newStack = oldStack.copy();
-			CompoundNBT tag = newStack.getOrCreateTag();
-			tag.put(BagOfYurtingData.NBT_KEY, new CompoundNBT()); // for compat reasons
+			CompoundTag tag = newStack.getOrCreateTag();
+			tag.put(BagOfYurtingData.NBT_KEY, new CompoundTag()); // for compat reasons
 			String id = DataIdNBTHelper.remove(tag);
 			if (id != null)
 			{
 				StorageManager.remove(id);
 			}
-			context.getPlayer().setHeldItem(context.getHand(), newStack);
+			context.getPlayer().setItemInHand(context.getHand(), newStack);
 		}
 		else
 		{
-			context.getPlayer().sendStatusMessage(new TranslationTextComponent("bagofyurting.failure.unload"), true);
+			context.getPlayer().displayClientMessage(new TranslatableComponent("bagofyurting.failure.unload"), true);
 		}
 	}
 	
@@ -243,7 +243,7 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 			{
 				foundBag = true;
 				int newRadius = BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getRadius(stack);
-				if (BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().hasColor(stack))
+				if (BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().hasCustomColor(stack))
 				{
 					dyes.add(BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getColor(stack));
 				}
@@ -290,11 +290,10 @@ public class BagOfYurtingItem extends Item implements IDyeableArmorItem
 	 */
 	@Override
 	@OnlyIn(Dist.CLIENT)
-	public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn)
+	public void appendHoverText(ItemStack stack, @Nullable Level LevelIn, List<Component> tooltip, TooltipFlag flagIn)
 	{
 		int diameter = this.getDiameter(stack);
 		String sizeText = String.format("%sx%sx%s", diameter, diameter, diameter);
-		StringTextComponent text = new StringTextComponent(sizeText);
-		tooltip.add(new StringTextComponent(sizeText).setStyle((Style.EMPTY.setItalic(true).applyFormatting(TextFormatting.GRAY))));
+		tooltip.add(new TextComponent(sizeText).setStyle((Style.EMPTY.withItalic(true).applyFormat(ChatFormatting.GRAY))));
 	}
 }

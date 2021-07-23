@@ -1,17 +1,17 @@
 package commoble.bagofyurting;
 
-import net.minecraft.block.Block;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ITag;
+import net.minecraft.tags.Tag;
+import net.minecraft.world.level.block.Block;
 
 public class TagWrappers
 {
-	public static final ITag<Block> whitelist = getBlockTagWrapper("whitelist");
-	public static final ITag<Block> blacklist = getBlockTagWrapper("blacklist");
-	public static final ITag<Block> replaceable = getBlockTagWrapper("replaceable");
+	public static final Tag<Block> whitelist = getBlockTagWrapper("whitelist");
+	public static final Tag<Block> blacklist = getBlockTagWrapper("blacklist");
+	public static final Tag<Block> replaceable = getBlockTagWrapper("replaceable");
 	
-	public static ITag<Block> getBlockTagWrapper(String path)
+	public static Tag<Block> getBlockTagWrapper(String path)
 	{
-		return BlockTags.makeWrapperTag(BagOfYurtingMod.MODID + ":" + path);
+		return BlockTags.bind(BagOfYurtingMod.MODID + ":" + path);
 	}
 }

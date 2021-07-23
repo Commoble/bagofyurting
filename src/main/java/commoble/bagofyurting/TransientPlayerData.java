@@ -7,7 +7,7 @@ import java.util.UUID;
 /**
  * Class that holds information on players on the server
  * This should only be referenced from the server thread
- * Data should be considered temporary, no data is saved on world save
+ * Data should be considered temporary, no data is saved on Level save
  */
 public class TransientPlayerData
 {

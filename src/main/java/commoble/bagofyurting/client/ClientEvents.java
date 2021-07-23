@@ -5,8 +5,8 @@ import commoble.bagofyurting.IsWasSprintPacket;
 import commoble.bagofyurting.OptionalSpawnParticlePacket;
 import commoble.bagofyurting.util.ConfigHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.network.play.ClientPlayNetHandler;
-import net.minecraft.item.IDyeableArmorItem;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.event.TickEvent.ClientTickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -30,7 +30,7 @@ public class ClientEvents
 	static void registerItemColors(ColorHandlerEvent.Item event)
 	{
 		event.getItemColors().register(
-			(stack, layer) ->  layer != 0 ? -1 : ((IDyeableArmorItem)stack.getItem()).getColor(stack),
+			(stack, layer) ->  layer != 0 ? -1 : ((DyeableLeatherItem)stack.getItem()).getColor(stack),
 			BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get());
 	}
 	
@@ -40,7 +40,7 @@ public class ClientEvents
 		
 		if (mc.player != null)
 		{
-			boolean isOverridingSafetyList = mc.gameSettings.keyBindSprint.isKeyDown() != ClientEvents.config.invertSafetyOverride.get();
+			boolean isOverridingSafetyList = mc.options.keySprint.isDown() != ClientEvents.config.invertSafetyOverride.get();
 			boolean wasOverridingSafetyList = overridingSafetyList;
 			if (wasOverridingSafetyList != isOverridingSafetyList)	// change in sprint key detected
 			{
@@ -58,10 +58,10 @@ public class ClientEvents
 	public static void onHandleOptionalSpawnParticlePacket(OptionalSpawnParticlePacket packet)
 	{
 		Minecraft mc = Minecraft.getInstance();
-		ClientPlayNetHandler handler = mc.getConnection();
+		ClientPacketListener handler = mc.getConnection();
 		if (handler != null)
 		{
-			packet.processPacket(handler);
+			packet.handle(handler);
 		}
 	}
 }

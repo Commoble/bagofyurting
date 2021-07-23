@@ -19,11 +19,11 @@ import org.apache.logging.log4j.Logger;
 import commoble.bagofyurting.BagOfYurtingData;
 import commoble.bagofyurting.BagOfYurtingMod;
 import commoble.bagofyurting.CompressedBagOfYurtingData;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.storage.FolderName;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.storage.LevelResource;
 
 /**
  * This class manages storage of {@link BagOfYurtingData}. Should be called only on server side
@@ -74,10 +74,10 @@ public class StorageManager
                 return null;
             }
 
-            CompoundNBT nbt;
+            CompoundTag nbt;
             try
             {
-                nbt = CompressedStreamTools.readCompressed(file.toFile());
+                nbt = NbtIo.readCompressed(file.toFile());
             }
             catch (IOException e)
             {
@@ -106,18 +106,18 @@ public class StorageManager
         }
     }
 
-    public static void onSave(ServerWorld world)
+    public static void onSave(ServerLevel Level)
     {
-        profile(world, "onSave", () ->
+        profile(Level, "onSave", () ->
         {
-            Path saveDirectory = getSaveDirectory(world.getServer());
+            Path saveDirectory = getSaveDirectory(Level.getServer());
             if (saveDirectory == null)
             {
                 return;
             }
 
-            profile(world, "saveQueued", () -> saveQueued(saveDirectory));
-            profile(world, "removeQueued", () -> removeQueued(saveDirectory));
+            profile(Level, "saveQueued", () -> saveQueued(saveDirectory));
+            profile(Level, "removeQueued", () -> removeQueued(saveDirectory));
         });
     }
 
@@ -129,10 +129,10 @@ public class StorageManager
             Pair<String, BagOfYurtingData> pair = dataToSave.poll();
             Path file = saveDirectory.resolve(pair.getLeft() + ".dat");
             CompressedBagOfYurtingData data = pair.getRight().compress();
-            CompoundNBT nbt = data.toNBT();
+            CompoundTag nbt = data.toNBT();
             try
             {
-                CompressedStreamTools.writeCompressed(nbt, file.toFile());
+                NbtIo.writeCompressed(nbt, file.toFile());
                 dirtyMap.remove(pair.getLeft());
             }
             catch (IOException e)
@@ -167,7 +167,7 @@ public class StorageManager
     @Nullable
     private static Path getSaveDirectory(MinecraftServer server)
     {
-        Path dir = server.func_240776_a_(new FolderName(BagOfYurtingMod.MODID));
+        Path dir = server.getWorldPath(new LevelResource(BagOfYurtingMod.MODID));
         if (!Files.exists(dir))
         {
             try
@@ -183,10 +183,10 @@ public class StorageManager
         return dir;
     }
 
-    private static void profile(ServerWorld world, String name, Runnable runnable)
+    private static void profile(ServerLevel Level, String name, Runnable runnable)
     {
-        world.getProfiler().startSection(BagOfYurtingMod.MODID + "#" + name);
+        Level.getProfiler().push(BagOfYurtingMod.MODID + "#" + name);
         runnable.run();
-        world.getProfiler().endSection();
+        Level.getProfiler().pop();
     }
 }

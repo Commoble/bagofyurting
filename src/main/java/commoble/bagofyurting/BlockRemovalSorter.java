@@ -2,16 +2,16 @@ package commoble.bagofyurting;
 
 import java.util.Comparator;
 
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class BlockRemovalSorter implements Comparator<BlockPos>
 {
-	private final World world;
+	private final Level Level;
 	
-	public BlockRemovalSorter(World world)
+	public BlockRemovalSorter(Level Level)
 	{
-		this.world = world;
+		this.Level = Level;
 	}
 
 	/**
@@ -36,6 +36,6 @@ public class BlockRemovalSorter implements Comparator<BlockPos>
 
 	public int getSortValue(BlockPos pos)
 	{
-		return -(pos.getY()*2 + (this.world.getBlockState(pos).isSolid() ? 0 : 1));
+		return -(pos.getY()*2 + (this.Level.getBlockState(pos).canOcclude() ? 0 : 1));
 	}
 }

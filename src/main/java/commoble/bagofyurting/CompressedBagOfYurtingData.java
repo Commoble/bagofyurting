@@ -13,10 +13,10 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import commoble.bagofyurting.BagOfYurtingData.StateData;
-import net.minecraft.block.BlockState;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.NBTDynamicOps;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class CompressedBagOfYurtingData
 {
@@ -51,9 +51,9 @@ public class CompressedBagOfYurtingData
 			final BlockPos pos = compressedData.pos;
 			final int index = compressedData.stateIndex;
 			final BlockState state = this.states.get(index);
-			// compressed data uses empty optionals for empty nbt, uncompressed uses empty compoundnbts
-			final CompoundNBT nbt = compressedData.getNBT()
-				.orElseGet(CompoundNBT::new);
+			// compressed data uses empty optionals for empty nbt, uncompressed uses empty CompoundTags
+			final CompoundTag nbt = compressedData.getNBT()
+				.orElseGet(CompoundTag::new);
 			StateData data = new StateData(state, nbt);
 			map.put(pos, data);
 		});
@@ -61,13 +61,13 @@ public class CompressedBagOfYurtingData
 		return new BagOfYurtingData(map);
 	}
 	
-	public CompoundNBT toNBT()
+	public CompoundTag toNBT()
 	{
-		// RecordCodecBuilder codecs encode as CompoundNBT, so the cast is safe enough
-		return (CompoundNBT)CompressedBagOfYurtingData.CODEC.encodeStart(NBTDynamicOps.INSTANCE, this)
+		// RecordCodecBuilder codecs encode as CompoundTag, so the cast is safe enough
+		return (CompoundTag)CompressedBagOfYurtingData.CODEC.encodeStart(NbtOps.INSTANCE, this)
 			// if encode fails, resultOrPartial logs the error and returns an empty optional
 			.resultOrPartial(LOGGER::error)
-			.orElseGet(CompoundNBT::new);
+			.orElseGet(CompoundTag::new);
 	}
 	
 	/**
@@ -75,9 +75,9 @@ public class CompressedBagOfYurtingData
 	 * @param nbt The nbt to read from
 	 * @return A present data object if successful, or an empty data  if it failed
 	 */
-	public static CompressedBagOfYurtingData fromNBT(CompoundNBT nbt)
+	public static CompressedBagOfYurtingData fromNBT(CompoundTag nbt)
 	{
-		return CompressedBagOfYurtingData.CODEC.parse(NBTDynamicOps.INSTANCE, nbt)
+		return CompressedBagOfYurtingData.CODEC.parse(NbtOps.INSTANCE, nbt)
 			.resultOrPartial(LOGGER::error)
 			.orElseGet(() -> new CompressedBagOfYurtingData(new ArrayList<>(), new ArrayList<>()));
 	}
@@ -87,7 +87,7 @@ public class CompressedBagOfYurtingData
 		public static final Codec<CompressedStateData> CODEC = RecordCodecBuilder.create(builder -> builder.group(
 				BlockPos.CODEC.fieldOf("pos").forGetter(CompressedStateData::getPos),
 				Codec.INT.fieldOf("state").forGetter(CompressedStateData::getStateIndex),
-				CompoundNBT.CODEC.optionalFieldOf("nbt").forGetter(CompressedStateData::getNBT)
+				CompoundTag.CODEC.optionalFieldOf("nbt").forGetter(CompressedStateData::getNBT)
 			).apply(builder, CompressedStateData::new));
 		
 		private final BlockPos pos;
@@ -96,10 +96,10 @@ public class CompressedBagOfYurtingData
 		private final int stateIndex;
 		public int getStateIndex() { return this.stateIndex; }
 		
-		private final Optional<CompoundNBT> nbt;
-		public Optional<CompoundNBT> getNBT() { return this.nbt; }
+		private final Optional<CompoundTag> nbt;
+		public Optional<CompoundTag> getNBT() { return this.nbt; }
 		
-		public CompressedStateData(BlockPos pos, int stateIndex, Optional<CompoundNBT> nbt)
+		public CompressedStateData(BlockPos pos, int stateIndex, Optional<CompoundTag> nbt)
 		{
 			this.pos = pos;
 			this.stateIndex = stateIndex;

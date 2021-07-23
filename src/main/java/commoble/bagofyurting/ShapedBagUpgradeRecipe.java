@@ -5,14 +5,14 @@ import java.util.List;
 
 import com.google.gson.JsonObject;
 
-import net.minecraft.inventory.CraftingInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.item.crafting.ShapedRecipe;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.ShapedRecipe;
 
 public class ShapedBagUpgradeRecipe extends ShapedRecipe
 {
@@ -25,7 +25,7 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 	}
 
 	@Override
-	public IRecipeSerializer<?> getSerializer()
+	public RecipeSerializer<?> getSerializer()
 	{
 		return BagOfYurtingMod.INSTANCE.shapedUpgradeRecipeSerializer.get();
 	}
@@ -36,9 +36,9 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 	 * and depends on its inputs), then return an empty stack.
 	 */
 	@Override
-	public ItemStack getRecipeOutput()
+	public ItemStack getResultItem()
 	{
-		return BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(super.getRecipeOutput(), this.displayRadius);
+		return BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(super.getResultItem(), this.displayRadius);
 	}
 
 	/**
@@ -46,33 +46,33 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 	 * recipe, but with radius NBT equal to smallest among inputs + 1
 	 */
 	@Override
-	public ItemStack getCraftingResult(CraftingInventory craftingSlots)
+	public ItemStack assemble(CraftingContainer craftingSlots)
 	{
 		List<ItemStack> stacks = new ArrayList<>();
-		int slotCount = craftingSlots.getSizeInventory();
+		int slotCount = craftingSlots.getContainerSize();
 		for (int i=0; i<slotCount; i++)
 		{
-			stacks.add(craftingSlots.getStackInSlot(i));
+			stacks.add(craftingSlots.getItem(i));
 		}
-		return BagOfYurtingItem.getUpgradeRecipeResult(stacks, this.getRecipeOutput());
+		return BagOfYurtingItem.getUpgradeRecipeResult(stacks, this.getResultItem());
 	}
 
 	public static class Serializer extends ShapedRecipe.Serializer
 	{
 		@Override
-		public ShapedRecipe read(ResourceLocation recipeId, JsonObject json)
+		public ShapedRecipe fromJson(ResourceLocation recipeId, JsonObject json)
 		{
-			ShapedRecipe recipe = super.read(recipeId, json);
+			ShapedRecipe recipe = super.fromJson(recipeId, json);
 
-			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.getRecipeOutput(), 1);
+			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.getResultItem(), 1);
 		}
 
 		@Override
-		public ShapedRecipe read(ResourceLocation recipeId, PacketBuffer buffer)
+		public ShapedRecipe fromNetwork(ResourceLocation recipeId, FriendlyByteBuf buffer)
 		{
-			ShapedRecipe recipe = super.read(recipeId, buffer);
+			ShapedRecipe recipe = super.fromNetwork(recipeId, buffer);
 
-			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.getRecipeOutput(), 1);
+			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.getResultItem(), 1);
 		}
 	}
 }

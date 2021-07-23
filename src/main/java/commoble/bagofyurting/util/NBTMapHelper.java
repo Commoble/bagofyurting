@@ -6,9 +6,9 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.nbt.ListTag;
 
 /**
  * 
@@ -37,8 +37,8 @@ SOFTWARE.
  */
 
 /**
- * Helper class for writing a Map into a CompoundNBT
- * example usage for use in e.g. a WorldSavedData, a TileEntity, etc:
+ * Helper class for writing a Map into a CompoundTag
+ * example usage for use in e.g. a LevelSavedData, a BlockEntity, etc:
  *
 <pre><code>
 	private static final String BLOCKS = "blocks";
@@ -49,20 +49,20 @@ SOFTWARE.
 	
 	{@code private static final NBTMapHelper<BlockPos, BlockState> BLOCKS_MAPPER = new NBTMapHelper<>(}
 			BLOCKS,
-	{@code 		(nbt, blockPos) -> nbt.put(BLOCKPOS, NBTUtil.writeBlockPos(blockPos)),}
-	{@code 		nbt -> NBTUtil.readBlockPos(nbt.getCompound(BLOCKPOS)),}
-	{@code 		(nbt, blockState) -> nbt.put(BLOCKSTATE, NBTUtil.writeBlockState(blockState)),}
-	{@code 		nbt -> NBTUtil.readBlockState(nbt.getCompound(BLOCKSTATE))}
+	{@code 		(nbt, blockPos) -> nbt.put(BLOCKPOS, NbtUtils.writeBlockPos(blockPos)),}
+	{@code 		nbt -> NbtUtils.readBlockPos(nbt.getCompound(BLOCKPOS)),}
+	{@code 		(nbt, blockState) -> nbt.put(BLOCKSTATE, NbtUtils.writeBlockState(blockState)),}
+	{@code 		nbt -> NbtUtils.readBlockState(nbt.getCompound(BLOCKSTATE))}
 			);
 			
 	{@literal @}Override
-	public void read(CompoundNBT nbt)
+	public void read(CompoundTag nbt)
 	{
 		this.map = BLOCKS_MAPPER.read(nbt);
 	}
 
 	{@literal @}Override
-	public CompoundNBT write(CompoundNBT compound)
+	public CompoundTag write(CompoundTag compound)
 	{
 		BLOCKS_MAPPER.write(this.map, compound);
 		return compound;
@@ -72,7 +72,7 @@ SOFTWARE.
  * 
  * @author Joseph aka Commoble
  */
-public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
+public class NBTMapHelper<K, KNBT extends Tag, V, VNBT extends Tag>
 {
 	private static final String KEY = "k";
 	private static final String VALUE = "v";
@@ -84,7 +84,7 @@ public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
 	private final Function<VNBT, V> valueReader;
 	
 	/**
-	 * @param name A unique identifier for the hashmap, allowing the map to be written into a CompoundNBT alongside other data
+	 * @param name A unique identifier for the hashmap, allowing the map to be written into a CompoundTag alongside other data
 	 * @param keyWriter A function that, given a Key, returns an nbt object representing that key
 	 * @param keyReader A function that, given an nbt object, returns the Key represented by that nbt
 	 * @param valueWriter A function that, given a Value, returns an nbt object representing that value
@@ -104,22 +104,22 @@ public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
 		this.valueWriter = valueWriter;
 	}
 	
-	public boolean hasData(final CompoundNBT nbt)
+	public boolean hasData(final CompoundTag nbt)
 	{
 		return nbt.contains(this.name);
 	}
 	
 	/**
-	 * Reconstructs and returns a {@code Map<K,V>} from a CompoundNBT
+	 * Reconstructs and returns a {@code Map<K,V>} from a CompoundTag
 	 * If the nbt used was given by this.write(map), the map returned will be a reconstruction of the original Map
-	 * @param nbt The CompoundNBT to read and construct the Map from
-	 * @return A Map that the data contained in the CompoundNBT represents
+	 * @param nbt The CompoundTag to read and construct the Map from
+	 * @return A Map that the data contained in the CompoundTag represents
 	 */
-	public Map<K, V> read(final CompoundNBT nbt)
+	public Map<K, V> read(final CompoundTag nbt)
 	{
 		final Map<K, V> newMap = new HashMap<>();
 
-		final ListNBT entryList = nbt.getList(this.name, 10);
+		final ListTag entryList = nbt.getList(this.name, 10);
 		if (entryList == null)
 			return newMap;
 		
@@ -134,7 +134,7 @@ public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
 		return newMap;
 	}
 	
-	private void writeEntry(Map<K,V> map, CompoundNBT entryNBT)
+	private void writeEntry(Map<K,V> map, CompoundTag entryNBT)
 	{
 		@SuppressWarnings("unchecked")
 		final K key = this.keyReader.apply((KNBT) entryNBT.get(KEY));
@@ -145,28 +145,28 @@ public class NBTMapHelper<K, KNBT extends INBT, V, VNBT extends INBT>
 	}
 	
 	/**
-	 * Given a map and a CompoundNBT, writes the map into the NBT
-	 * The same compoundNBT can be given to this.read to retrieve that map
+	 * Given a map and a CompoundTag, writes the map into the NBT
+	 * The same CompoundTag can be given to this.read to retrieve that map
 	 * @param map A {@code Map<K,V>}
-	 * @param compound A CompoundNBT to write the map into
-	 * @return a CompoundNBT that, when used as the argument to this.read(nbt), will cause that function to reconstruct and return a copy of the original map
+	 * @param compound A CompoundTag to write the map into
+	 * @return a CompoundTag that, when used as the argument to this.read(nbt), will cause that function to reconstruct and return a copy of the original map
 	 */
-	public CompoundNBT write(final Map<K,V> map, final CompoundNBT compound)
+	public CompoundTag write(final Map<K,V> map, final CompoundTag compound)
 	{
-		final ListNBT entryListNBT = new ListNBT();
-		map.entrySet().forEach(entry -> this.writeEntry(entryListNBT, entry));
+		final ListTag entryListTag = new ListTag();
+		map.entrySet().forEach(entry -> this.writeEntry(entryListTag, entry));
 		
-		compound.put(this.name, entryListNBT);
+		compound.put(this.name, entryListTag);
 		
 		return compound;
 	}
 	
-	private void writeEntry(ListNBT entryListNBT, Entry<K,V> entry)
+	private void writeEntry(ListTag entryListTag, Entry<K,V> entry)
 	{
-		final CompoundNBT entryNBT = new CompoundNBT();
+		final CompoundTag entryNBT = new CompoundTag();
 		entryNBT.put(KEY, this.keyWriter.apply(entry.getKey()));
 		entryNBT.put(VALUE, this.valueWriter.apply(entry.getValue()));
 		
-		entryListNBT.add(entryNBT);
+		entryListTag.add(entryNBT);
 	}
 }

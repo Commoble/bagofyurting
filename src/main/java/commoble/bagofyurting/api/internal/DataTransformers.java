@@ -6,15 +6,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.google.common.collect.ImmutableMap;
 
 import commoble.bagofyurting.api.BlockDataTransformer;
-import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 
 public class DataTransformers
 {
-	public static Map<TileEntityType<?>, BlockDataTransformer<?>> transformers = new ConcurrentHashMap<>();
+	public static Map<BlockEntityType<?>, BlockDataTransformer<?>> transformers = new ConcurrentHashMap<>();
 	
 	public static void freezeRegistries()
 	{
-		transformers = ImmutableMap.<TileEntityType<?>, BlockDataTransformer<?>>builder()
+		transformers = ImmutableMap.<BlockEntityType<?>, BlockDataTransformer<?>>builder()
 			.putAll(transformers)
 			.build();
 	}
