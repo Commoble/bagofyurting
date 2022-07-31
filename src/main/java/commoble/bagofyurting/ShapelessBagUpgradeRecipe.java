@@ -27,7 +27,7 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 	@Override
 	public RecipeSerializer<?> getSerializer()
 	{
-		return BagOfYurtingMod.INSTANCE.shapelessUpgradeRecipeSerializer.get();
+		return BagOfYurtingMod.get().shapelessUpgradeRecipeSerializer.get();
 	}
 
 	/**
@@ -38,7 +38,7 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 	@Override
 	public ItemStack getResultItem()
 	{
-		return BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(super.getResultItem(), this.displayRadius);
+		return BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(super.getResultItem(), this.displayRadius);
 	}
 
 	/**

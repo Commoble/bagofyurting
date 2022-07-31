@@ -27,7 +27,7 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 	@Override
 	public RecipeSerializer<?> getSerializer()
 	{
-		return BagOfYurtingMod.INSTANCE.shapedUpgradeRecipeSerializer.get();
+		return BagOfYurtingMod.get().shapedUpgradeRecipeSerializer.get();
 	}
 
 	/**
@@ -38,7 +38,7 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 	@Override
 	public ItemStack getResultItem()
 	{
-		return BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(super.getResultItem(), this.displayRadius);
+		return BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(super.getResultItem(), this.displayRadius);
 	}
 
 	/**

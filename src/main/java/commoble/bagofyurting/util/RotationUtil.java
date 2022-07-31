@@ -1,4 +1,4 @@
-package commoble.bagofyurting.api;
+package commoble.bagofyurting.util;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

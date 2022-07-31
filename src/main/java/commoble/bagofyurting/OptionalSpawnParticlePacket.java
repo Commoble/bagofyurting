@@ -2,7 +2,7 @@ package commoble.bagofyurting;
 
 import java.util.function.Supplier;
 
-import commoble.bagofyurting.client.ClientEvents;
+import commoble.bagofyurting.client.ClientProxy;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -10,9 +10,9 @@ import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.fmllegacy.network.NetworkEvent;
-import net.minecraftforge.fmllegacy.network.PacketDistributor;
-import net.minecraftforge.fmllegacy.network.PacketDistributor.TargetPoint;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.network.PacketDistributor.TargetPoint;
 
 public class OptionalSpawnParticlePacket extends ClientboundLevelParticlesPacket
 {	
@@ -42,7 +42,7 @@ public class OptionalSpawnParticlePacket extends ClientboundLevelParticlesPacket
 	@Override
 	public void handle(ClientGamePacketListener handler)
 	{
-		if (FMLEnvironment.dist == Dist.CLIENT && ClientEvents.canSpawnBagParticles())
+		if (FMLEnvironment.dist == Dist.CLIENT && ClientProxy.canSpawnBagParticles())
 		{
 			super.handle(handler);
 		}
@@ -53,7 +53,7 @@ public class OptionalSpawnParticlePacket extends ClientboundLevelParticlesPacket
 		NetworkEvent.Context context = contextGetter.get();
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
-			ClientEvents.onHandleOptionalSpawnParticlePacket(this);
+			ClientProxy.onHandleOptionalSpawnParticlePacket(this);
 		}
 		context.setPacketHandled(true);
 	}

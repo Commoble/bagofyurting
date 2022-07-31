@@ -14,12 +14,12 @@ public class JEIUpgradeRecipeHacks
 {
 	public static ShapedBagUpgradeRecipe getFakeShapedRecipe(ShapedBagUpgradeRecipe recipe, int outputRadius)
 	{
-		return new ShapedBagUpgradeRecipe(recipe.getId(), recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), convertIngredients(recipe.getIngredients(), outputRadius), BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(recipe.getResultItem(), outputRadius), outputRadius);
+		return new ShapedBagUpgradeRecipe(recipe.getId(), recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), convertIngredients(recipe.getIngredients(), outputRadius), BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(recipe.getResultItem(), outputRadius), outputRadius);
 	}
 	
 	public static ShapelessBagUpgradeRecipe getFakeShapelessRecipe(ShapelessBagUpgradeRecipe recipe, int outputRadius)
 	{
-		return new ShapelessBagUpgradeRecipe(recipe.getId(), recipe.getGroup(), BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(recipe.getResultItem(), outputRadius), convertIngredients(recipe.getIngredients(), outputRadius), outputRadius);
+		return new ShapelessBagUpgradeRecipe(recipe.getId(), recipe.getGroup(), BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(recipe.getResultItem(), outputRadius), convertIngredients(recipe.getIngredients(), outputRadius), outputRadius);
 	}
 	
 	public static NonNullList<Ingredient> convertIngredients(NonNullList<Ingredient> baseIngredients, int outputRadius)
@@ -42,7 +42,7 @@ public class JEIUpgradeRecipeHacks
 	{
 		if (baseIngredient.getItem() instanceof BagOfYurtingItem)
 		{
-			return BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(baseIngredient, outputRadius-1);
+			return BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(baseIngredient, outputRadius-1);
 		}
 		else
 		{

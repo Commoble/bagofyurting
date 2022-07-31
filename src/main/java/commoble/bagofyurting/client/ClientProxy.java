@@ -7,31 +7,33 @@ import commoble.bagofyurting.util.ConfigHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.world.item.DyeableLeatherItem;
-import net.minecraftforge.client.event.ColorHandlerEvent;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.event.TickEvent.ClientTickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.config.ModConfig;
 
-public class ClientEvents
+public class ClientProxy
 {
-	public static ClientConfig config;
+	private static ClientConfig config;
+	public ClientConfig clientConfig() { return config; };
+	
 	public static boolean overridingSafetyList = false;
 	
 	///** Called by mod constructor on mod init, isolated to avoid classloading client classes on server**/
 	public static void subscribeClientEvents(IEventBus modBus, IEventBus forgeBus)
 	{
-		modBus.addListener(ClientEvents::registerItemColors);
+		modBus.addListener(ClientProxy::registerItemColors);
 		
-		forgeBus.addListener(ClientEvents::onClientTick);
+		forgeBus.addListener(ClientProxy::onClientTick);
 		
-		config = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::new);
+		config = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::create);
 	}
 	
-	static void registerItemColors(ColorHandlerEvent.Item event)
+	static void registerItemColors(RegisterColorHandlersEvent.Item event)
 	{
-		event.getItemColors().register(
+		event.register(
 			(stack, layer) ->  layer != 0 ? -1 : ((DyeableLeatherItem)stack.getItem()).getColor(stack),
-			BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get());
+			BagOfYurtingMod.get().bagOfYurtingItem.get());
 	}
 	
 	static void onClientTick(ClientTickEvent event)
@@ -40,7 +42,7 @@ public class ClientEvents
 		
 		if (mc.player != null)
 		{
-			boolean isOverridingSafetyList = mc.options.keySprint.isDown() != ClientEvents.config.invertSafetyOverride.get();
+			boolean isOverridingSafetyList = mc.options.keySprint.isDown() != config.invertSafetyOverride().get();
 			boolean wasOverridingSafetyList = overridingSafetyList;
 			if (wasOverridingSafetyList != isOverridingSafetyList)	// change in sprint key detected
 			{
@@ -52,7 +54,7 @@ public class ClientEvents
 	
 	public static boolean canSpawnBagParticles()
 	{
-		return config.enableParticles.get();
+		return config.enableParticles().get();
 	}
 	
 	public static void onHandleOptionalSpawnParticlePacket(OptionalSpawnParticlePacket packet)

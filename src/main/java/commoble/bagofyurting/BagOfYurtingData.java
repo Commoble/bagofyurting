@@ -14,12 +14,8 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 
 import commoble.bagofyurting.CompressedBagOfYurtingData.CompressedStateData;
-import commoble.bagofyurting.api.BagOfYurtingAPI;
-import commoble.bagofyurting.api.BlockDataDeserializer;
-import commoble.bagofyurting.api.BlockDataSerializer;
-import commoble.bagofyurting.api.RotationUtil;
-import commoble.bagofyurting.api.internal.DataTransformers;
 import commoble.bagofyurting.util.NBTMapHelper;
+import commoble.bagofyurting.util.RotationUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
@@ -34,7 +30,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -44,8 +39,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.BlockSnapshot;
 import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.event.world.BlockEvent.BreakEvent;
-import net.minecraftforge.event.world.BlockEvent.EntityMultiPlaceEvent;
+import net.minecraftforge.event.level.BlockEvent.BreakEvent;
+import net.minecraftforge.event.level.BlockEvent.EntityMultiPlaceEvent;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public class BagOfYurtingData
 {
@@ -65,7 +61,6 @@ public class BagOfYurtingData
 	{
 		this.map = map;
 	}
-
 	/** Removes blocks from the Level and stores them as yurt data, returning the data **/
 	public static BagOfYurtingData yurtBlocksAndConvertToData(UseOnContext context, int radius)
 	{
@@ -212,9 +207,9 @@ public class BagOfYurtingData
 	
 	private static boolean canPlayerOverrideSafetyLists(@Nullable Player player)
 	{
-		if (player != null && (player.isCreative() || player.hasPermissions(ServerConfig.INSTANCE.minPermissionToYurtUnyurtableBlocks.get())))
+		if (player != null && (player.isCreative() || player.hasPermissions(BagOfYurtingMod.get().serverConfig().minPermissionToYurtUnyurtableBlocks().get())))
 		{
-			return TransientPlayerData.isPlayerOverridingSafetyList(Player.createPlayerUUID(player.getGameProfile()));
+			return TransientPlayerData.isPlayerOverridingSafetyList(player.getUUID());
 		}
 		else
 		{
@@ -245,10 +240,10 @@ public class BagOfYurtingData
 		}
 		else
 		{
-			Block block = state.getBlock();
 			// tags allow this block if the block isn't blacklisted, and if either the whitelist contains the block or is empty
-			return (!TagWrappers.blacklist.contains(block))
-				&& (TagWrappers.whitelist.getValues().isEmpty() || TagWrappers.whitelist.contains(block));
+			return !state.is(BagOfYurtingMod.Tags.Blocks.BLACKLIST)
+				&& (ForgeRegistries.BLOCKS.tags().getTag(BagOfYurtingMod.Tags.Blocks.WHITELIST).isEmpty()
+					|| state.is(BagOfYurtingMod.Tags.Blocks.WHITELIST));
 		}
 	}
 
@@ -287,29 +282,6 @@ public class BagOfYurtingData
 		MinecraftForge.EVENT_BUS.post(event);
 		return !event.isCanceled();
 	}
-
-//	/** The position here is the untransformed position whose data is to be stored **/
-//	@SuppressWarnings("unchecked")
-//	private static StateData getPosEntryAndRemoveBlock(UseOnContext context, BlockPos pos, BlockPos minYurt, BlockPos maxYurt)
-//	{
-//		CompoundTag nbt = new CompoundTag();
-//		Level Level = context.getLevel();
-//		BlockState state = Level.getBlockState(pos);
-//		BlockEntity te = Level.getBlockEntity(pos);
-//		Rotation rotation = RotationUtil.getTransformRotation(context.getPlacementHorizontalFacing());
-//		if (te != null)
-//		{
-//			@SuppressWarnings("rawtypes")
-//			// need raw type for this to compile, type correctness has been enforced elsewhere
-//			BlockDataSerializer serializer = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
-//				.getSerializer();
-//			serializer.writeWithYurtContext(te, nbt, rotation, minYurt, maxYurt);
-//		}
-//		Level.removeBlockEntity(pos);
-//		Level.setBlockState(pos, Blocks.AIR.getDefaultState(), 0);	// don't notify block update on remove
-//		return new StateData(state.rotate(rotation), nbt);
-//
-//	}
 	
 	private static Pair<BlockPos, Pair<BlockPos, StateData>> getTransformedPosAndStateData(LevelAccessor Level, BlockPos absolutePos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
 	{
@@ -318,21 +290,12 @@ public class BagOfYurtingData
 		return Pair.of(absolutePos, Pair.of(transformedPos, stateData));
 	}
 	
-	@SuppressWarnings("unchecked")
 	private static StateData getYurtedStateData(LevelAccessor Level, BlockPos pos, Rotation rotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin, BlockPos transformedPos)
 	{
-		CompoundTag nbt = new CompoundTag();
 		BlockState state = Level.getBlockState(pos);
 		BlockState rotatedState = state.rotate(Level, pos, rotation);
 		BlockEntity te = Level.getBlockEntity(pos);
-		if (te != null)
-		{
-			@SuppressWarnings("rawtypes")
-			// need raw type for this to compile, type correctness has been enforced elsewhere
-			BlockDataSerializer serializer = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
-				.getSerializer();
-			serializer.writeWithYurtContext(te, nbt, rotation, minYurt, maxYurt, origin, transformedPos);
-		}
+		CompoundTag nbt = te == null ? new CompoundTag() : te.saveWithoutMetadata();
 		return new StateData(rotatedState, nbt);
 	}
 
@@ -346,8 +309,8 @@ public class BagOfYurtingData
 		{
 			BlockState oldState = Level.getBlockState(pos);
 			return oldState.isAir()
-				|| TagWrappers.replaceable.contains(oldState.getBlock())
-				|| oldState.getMaterial().isReplaceable();
+				|| oldState.getMaterial().isReplaceable()
+				|| oldState.is(BagOfYurtingMod.Tags.Blocks.REPLACEABLE);
 		}
 	}
 
@@ -404,7 +367,7 @@ public class BagOfYurtingData
 	public static class StateData
 	{
 		public static final String BLOCKSTATE = "state";
-		public static final String TILE ="te";
+		public static final String TILE ="data";
 
 		private final @Nonnull BlockState state;
 		private final @Nonnull CompoundTag BlockEntityData;
@@ -422,10 +385,9 @@ public class BagOfYurtingData
 		
 		public void setBlockIntoLevel(Level level, BlockPos pos, Rotation unrotation)
 		{
-			level.setBlockAndUpdate(pos, this.state.rotate(unrotation));
+			level.setBlockAndUpdate(pos, this.state.rotate(level, pos, unrotation));
 		}
 		
-		@SuppressWarnings("unchecked")
 		public void setBlockEntityData(Level level, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
 		{
 			if (!this.BlockEntityData.isEmpty())
@@ -433,12 +395,7 @@ public class BagOfYurtingData
 				BlockEntity te = level.getBlockEntity(pos);
 				if (te != null)
 				{
-					// need raw types to get the data transformer to compile here
-					@SuppressWarnings("rawtypes")
-					BlockDataDeserializer x = DataTransformers.transformers.getOrDefault(te.getType(), BagOfYurtingAPI.DEFAULT_TRANSFORMER)
-						.getDeserializer();
-					x.readWithYurtContext(te, this.BlockEntityData, level, pos, this.state, unrotation, minYurt, maxYurt, origin);
-					te.setLevel(level);
+					te.load(BlockEntityData);
 				}
 			}
 		}

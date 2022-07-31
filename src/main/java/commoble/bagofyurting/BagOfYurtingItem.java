@@ -13,8 +13,6 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
@@ -117,7 +115,7 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 	@Override
 	public void fillItemCategory(CreativeModeTab group, NonNullList<ItemStack> items)
 	{
-		if (this.allowdedIn(group))
+		if (this.allowedIn(group))
 		{
 			for (int i=0; i<7; i++)
 			{
@@ -201,7 +199,7 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 		}
 		else
 		{
-			context.getPlayer().displayClientMessage(new TranslatableComponent("bagofyurting.failure.load"), true);
+			context.getPlayer().displayClientMessage(Component.translatable("bagofyurting.failure.load"), true);
 		}
 	}
 
@@ -226,7 +224,7 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 		}
 		else
 		{
-			context.getPlayer().displayClientMessage(new TranslatableComponent("bagofyurting.failure.unload"), true);
+			context.getPlayer().displayClientMessage(Component.translatable("bagofyurting.failure.unload"), true);
 		}
 	}
 	
@@ -242,10 +240,10 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 			if (item instanceof BagOfYurtingItem)
 			{
 				foundBag = true;
-				int newRadius = BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getRadius(stack);
-				if (BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().hasCustomColor(stack))
+				int newRadius = BagOfYurtingMod.get().bagOfYurtingItem.get().getRadius(stack);
+				if (BagOfYurtingMod.get().bagOfYurtingItem.get().hasCustomColor(stack))
 				{
-					dyes.add(BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().getColor(stack));
+					dyes.add(BagOfYurtingMod.get().bagOfYurtingItem.get().getColor(stack));
 				}
 
 				if (newRadius < bagRadius)
@@ -259,7 +257,7 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 			bagRadius = 0;
 		}
 		
-		ItemStack actualOutput = BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().withRadius(output, bagRadius + 1);
+		ItemStack actualOutput = BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(output, bagRadius + 1);
 		int colors = dyes.size();
 		if (colors > 0)
 		{
@@ -278,7 +276,7 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 			
 			int finalColor = finalRed + finalGreen + finalBlue;
 			
-			BagOfYurtingMod.INSTANCE.bagOfYurtingItem.get().setColor(actualOutput, finalColor);
+			BagOfYurtingMod.get().bagOfYurtingItem.get().setColor(actualOutput, finalColor);
 		}
 		
 
@@ -294,6 +292,6 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 	{
 		int diameter = this.getDiameter(stack);
 		String sizeText = String.format("%sx%sx%s", diameter, diameter, diameter);
-		tooltip.add(new TextComponent(sizeText).setStyle((Style.EMPTY.withItalic(true).applyFormat(ChatFormatting.GRAY))));
+		tooltip.add(Component.literal(sizeText).setStyle((Style.EMPTY.withItalic(true).applyFormat(ChatFormatting.GRAY))));
 	}
 }
