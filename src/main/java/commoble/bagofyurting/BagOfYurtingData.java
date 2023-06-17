@@ -21,6 +21,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerLevel;
@@ -132,7 +133,7 @@ public class BagOfYurtingData
 		// unless the block we use it on is replaceable
 		// in which case the origin is that block
 		BlockPos hitPos = context.getClickedPos();
-		boolean hitBlockReplaceable = (level.getBlockState(hitPos).getMaterial().isReplaceable());
+		boolean hitBlockReplaceable = level.getBlockState(hitPos).canBeReplaced();
 		BlockPos origin = hitBlockReplaceable ? hitPos : hitPos.relative(context.getClickedFace());
 		Direction orientation = context.getHorizontalDirection();
 		Rotation unrotation = RotationUtil.getUntransformRotation(orientation);
@@ -198,7 +199,7 @@ public class BagOfYurtingData
 
 			int particles = Math.max(5000, (int)volume*5);
 
-			Level.playSound(null, new BlockPos(center), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1, 1f);
+			Level.playSound(null, new BlockPos((int)center.x, (int)center.y, (int)center.z), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1, 1f);
 
 			OptionalSpawnParticlePacket.spawnParticlesFromServer(Level, ParticleTypes.EXPLOSION, center.x(), center.y(), center.z(), particles, xRadius, yRadius, zRadius, 0);
 
@@ -309,7 +310,7 @@ public class BagOfYurtingData
 		{
 			BlockState oldState = Level.getBlockState(pos);
 			return oldState.isAir()
-				|| oldState.getMaterial().isReplaceable()
+				|| oldState.canBeReplaced()
 				|| oldState.is(BagOfYurtingMod.Tags.Blocks.REPLACEABLE);
 		}
 	}
@@ -410,9 +411,10 @@ public class BagOfYurtingData
 			return nbt;
 		}
 
+		@SuppressWarnings("deprecation")
 		public static StateData read(CompoundTag nbt)
 		{
-			BlockState state = NbtUtils.readBlockState(nbt.getCompound(BLOCKSTATE));
+			BlockState state = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), nbt.getCompound(BLOCKSTATE));
 			CompoundTag te = nbt.getCompound(TILE);
 
 			return new StateData(state, te);

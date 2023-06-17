@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import commoble.bagofyurting.storage.DataIdNBTHelper;
 import commoble.bagofyurting.storage.StorageManager;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -17,7 +16,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -106,23 +104,6 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 		ItemStack newStack = stack.copy();
 		newStack.getOrCreateTag().putInt(RADIUS_KEY, radius);
 		return newStack;
-	}
-
-	/**
-	 * returns a list of items with the same ID, but different meta (eg: dye returns
-	 * 16 items)
-	 */
-	@Override
-	public void fillItemCategory(CreativeModeTab group, NonNullList<ItemStack> items)
-	{
-		if (this.allowedIn(group))
-		{
-			for (int i=0; i<7; i++)
-			{
-				items.add(this.withRadius(new ItemStack(this), i));
-			}
-		}
-
 	}
 
 	/**

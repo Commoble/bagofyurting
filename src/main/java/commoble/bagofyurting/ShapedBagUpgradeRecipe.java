@@ -6,10 +6,12 @@ import java.util.List;
 import com.google.gson.JsonObject;
 
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
@@ -18,9 +20,9 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 {
 	private final int displayRadius;	// extra recipes are added to JEI with bigger displayRadiuses
 
-	public ShapedBagUpgradeRecipe(ResourceLocation idIn, String groupIn, int recipeWidthIn, int recipeHeightIn, NonNullList<Ingredient> recipeItemsIn, ItemStack recipeOutputIn, int displayRadius)
+	public ShapedBagUpgradeRecipe(ResourceLocation idIn, String groupIn, CraftingBookCategory category, int recipeWidthIn, int recipeHeightIn, NonNullList<Ingredient> recipeItemsIn, ItemStack recipeOutputIn, int displayRadius)
 	{
-		super(idIn, groupIn, recipeWidthIn, recipeHeightIn, recipeItemsIn, recipeOutputIn);
+		super(idIn, groupIn, category, recipeWidthIn, recipeHeightIn, recipeItemsIn, recipeOutputIn);
 		this.displayRadius = displayRadius;
 	}
 
@@ -36,9 +38,9 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 	 * and depends on its inputs), then return an empty stack.
 	 */
 	@Override
-	public ItemStack getResultItem()
+	public ItemStack getResultItem(RegistryAccess registries)
 	{
-		return BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(super.getResultItem(), this.displayRadius);
+		return BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(super.getResultItem(registries), this.displayRadius);
 	}
 
 	/**
@@ -46,7 +48,7 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 	 * recipe, but with radius NBT equal to smallest among inputs + 1
 	 */
 	@Override
-	public ItemStack assemble(CraftingContainer craftingSlots)
+	public ItemStack assemble(CraftingContainer craftingSlots, RegistryAccess registries)
 	{
 		List<ItemStack> stacks = new ArrayList<>();
 		int slotCount = craftingSlots.getContainerSize();
@@ -54,7 +56,7 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 		{
 			stacks.add(craftingSlots.getItem(i));
 		}
-		return BagOfYurtingItem.getUpgradeRecipeResult(stacks, this.getResultItem());
+		return BagOfYurtingItem.getUpgradeRecipeResult(stacks, this.getResultItem(registries));
 	}
 
 	public static class Serializer extends ShapedRecipe.Serializer
@@ -64,7 +66,7 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 		{
 			ShapedRecipe recipe = super.fromJson(recipeId, json);
 
-			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.getResultItem(), 1);
+			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.category(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.result, 1);
 		}
 
 		@Override
@@ -72,7 +74,7 @@ public class ShapedBagUpgradeRecipe extends ShapedRecipe
 		{
 			ShapedRecipe recipe = super.fromNetwork(recipeId, buffer);
 
-			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.getResultItem(), 1);
+			return new ShapedBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.category(), recipe.getWidth(), recipe.getHeight(), recipe.getIngredients(), recipe.result, 1);
 		}
 	}
 }

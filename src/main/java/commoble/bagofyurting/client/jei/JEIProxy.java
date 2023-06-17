@@ -6,7 +6,6 @@ import java.util.function.IntFunction;
 
 import commoble.bagofyurting.BagOfYurtingMod;
 import commoble.bagofyurting.ObjectNames;
-import commoble.bagofyurting.ServerConfig;
 import commoble.bagofyurting.ShapedBagUpgradeRecipe;
 import commoble.bagofyurting.ShapelessBagUpgradeRecipe;
 import mezz.jei.api.IModPlugin;

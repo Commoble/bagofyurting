@@ -6,10 +6,12 @@ import java.util.List;
 import com.google.gson.JsonObject;
 
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapelessRecipe;
@@ -18,9 +20,9 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 {
 	private final int displayRadius;	// extra recipes are added to JEI with bigger displayRadiuses
 
-	public ShapelessBagUpgradeRecipe(ResourceLocation idIn, String groupIn, ItemStack recipeOutputIn, NonNullList<Ingredient> recipeItemsIn, int displayRadius)
+	public ShapelessBagUpgradeRecipe(ResourceLocation idIn, String groupIn, CraftingBookCategory category, ItemStack recipeOutputIn, NonNullList<Ingredient> recipeItemsIn, int displayRadius)
 	{
-		super(idIn, groupIn, recipeOutputIn, recipeItemsIn);
+		super(idIn, groupIn, category, recipeOutputIn, recipeItemsIn);
 		this.displayRadius = displayRadius;
 	}
 
@@ -36,9 +38,9 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 	 * and depends on its inputs), then return an empty stack.
 	 */
 	@Override
-	public ItemStack getResultItem()
+	public ItemStack getResultItem(RegistryAccess registries)
 	{
-		return BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(super.getResultItem(), this.displayRadius);
+		return BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(super.getResultItem(registries), this.displayRadius);
 	}
 
 	/**
@@ -46,7 +48,7 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 	 * recipe, but with radius NBT equal to smallest among inputs + 1
 	 */
 	@Override
-	public ItemStack assemble(CraftingContainer craftingSlots)
+	public ItemStack assemble(CraftingContainer craftingSlots, RegistryAccess registries)
 	{
 		List<ItemStack> stacks = new ArrayList<>();
 		int slotCount = craftingSlots.getContainerSize();
@@ -54,7 +56,7 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 		{
 			stacks.add(craftingSlots.getItem(i));
 		}
-		return BagOfYurtingItem.getUpgradeRecipeResult(stacks, this.getResultItem());
+		return BagOfYurtingItem.getUpgradeRecipeResult(stacks, this.getResultItem(registries));
 	}
 	
 	public static class Serializer extends ShapelessRecipe.Serializer
@@ -64,7 +66,7 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 		{
 			ShapelessRecipe recipe = super.fromJson(recipeId, json);
 
-			return new ShapelessBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getResultItem(), recipe.getIngredients(), 1);
+			return new ShapelessBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.category(), recipe.getResultItem(null), recipe.getIngredients(), 1);
 		}
 
 		@Override
@@ -72,7 +74,7 @@ public class ShapelessBagUpgradeRecipe extends ShapelessRecipe
 		{
 			ShapelessRecipe recipe = super.fromNetwork(recipeId, buffer);
 
-			return new ShapelessBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.getResultItem(), recipe.getIngredients(), 1); 
+			return new ShapelessBagUpgradeRecipe(recipeId, recipe.getGroup(), recipe.category(), recipe.result, recipe.getIngredients(), 1); 
 		}
 	}
 }

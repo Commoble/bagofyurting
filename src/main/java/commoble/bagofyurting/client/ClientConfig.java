@@ -1,6 +1,5 @@
 package commoble.bagofyurting.client;
 
-import commoble.bagofyurting.util.ConfigHelper;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 
