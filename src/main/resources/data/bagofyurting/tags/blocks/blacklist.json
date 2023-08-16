@@ -2,6 +2,10 @@
   "replace": false,
   "values": [
   	"#minecraft:wither_immune",
-  	"#minecraft:portals"
+  	"#minecraft:portals",
+  	{
+  		"id": "#forge:relocation_not_supported",
+  		"required": false
+  	}
   ]
 }
