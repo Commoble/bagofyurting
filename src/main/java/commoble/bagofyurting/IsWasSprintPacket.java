@@ -1,42 +1,33 @@
 package commoble.bagofyurting;
 
-import java.util.function.Supplier;
-
-import net.minecraft.network.FriendlyByteBuf;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public class IsWasSprintPacket
+public record IsWasSprintPacket(boolean isSprintHeld) implements CustomPacketPayload
 {
-	private boolean isSprintHeld;
-
-	public IsWasSprintPacket(boolean isSprintHeld)
+	public static final CustomPacketPayload.Type<IsWasSprintPacket> TYPE = new CustomPacketPayload.Type<>(BagOfYurtingMod.id("is_was_sprint"));
+	
+	public static final StreamCodec<ByteBuf, IsWasSprintPacket> STREAM_CODEC = ByteBufCodecs.BOOL.map(IsWasSprintPacket::new, IsWasSprintPacket::isSprintHeld);
+	
+	public void handle(IPayloadContext context)
 	{
-		this.isSprintHeld = isSprintHeld;
-	}
-
-	public void write(FriendlyByteBuf buf)
-	{
-		buf.writeByte(this.isSprintHeld ? 1 : 0);
-	}
-
-	public static IsWasSprintPacket read(FriendlyByteBuf buf)
-	{
-		return new IsWasSprintPacket(buf.readByte() > 0);
-	}
-
-	public void handle(Supplier<NetworkEvent.Context> contextGetter)
-	{
-		NetworkEvent.Context context = contextGetter.get();
 		// PlayerData needs to be threadsafed, packet handling is done on worker
 		// threads, delegate to main thread
 		context.enqueueWork(() -> {
-			ServerPlayer player = context.getSender();
-			if (player != null)
+			if (context.player() instanceof ServerPlayer serverPlayer)
 			{
-				TransientPlayerData.setOverridingSafetyList(player.getUUID(), this.isSprintHeld);
+				TransientPlayerData.setOverridingSafetyList(serverPlayer.getUUID(), this.isSprintHeld);
 			}
 		});
-		context.setPacketHandled(true);
+	}
+
+	@Override
+	public Type<? extends CustomPacketPayload> type()
+	{
+		return TYPE;
 	}
 }

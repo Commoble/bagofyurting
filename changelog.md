@@ -1,3 +1,10 @@
+# 5.0.0.0
+* Updated to MC 1.21 / neoforge 21.0.65-beta. This is not compatible with old worlds; loading old worlds in 1.21 will cause bags to lose data.
+* Removed legacy shaped bag of yurting upgrade recipe type
+
+# 4.0.0.1
+* Ignore blocks tagged with "#forge:relocation_not_supported" by default
+
 # 4.0.0.0
 * Updated to minecraft 1.20.1
 

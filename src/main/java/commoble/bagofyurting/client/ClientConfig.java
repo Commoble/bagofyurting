@@ -1,11 +1,11 @@
 package commoble.bagofyurting.client;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.BooleanValue;
 
 public record ClientConfig(BooleanValue enableParticles, BooleanValue invertSafetyOverride)
 {
-	public static ClientConfig create(ForgeConfigSpec.Builder builder)
+	public static ClientConfig create(ModConfigSpec.Builder builder)
 	{
 		return new ClientConfig(
 			builder

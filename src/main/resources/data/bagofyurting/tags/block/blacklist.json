@@ -4,7 +4,7 @@
   	"#minecraft:wither_immune",
   	"#minecraft:portals",
   	{
-  		"id": "#forge:relocation_not_supported",
+  		"id": "#c:relocation_not_supported",
   		"required": false
   	}
   ]

@@ -1,113 +1,54 @@
-buildscript {
-    repositories {
-        maven { url = 'https://maven.minecraftforge.net' }
-        mavenCentral()
-    }
-    dependencies {
-        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
-    }
+plugins {
+	id 'java-library'
+	id 'eclipse'
+	id 'idea'
+	id 'net.neoforged.gradle.userdev' version "7.0.+"
 }
-apply plugin: 'net.minecraftforge.gradle'
-// Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
-apply plugin: 'eclipse'
-apply plugin: 'maven-publish'
-apply plugin: 'java'
 
+group = "net.commoble.${modid}"
+base { archivesName="${modid}-${mc_version}" }
 version = "${mod_version}"
-group = "commoble.${modid}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = "${modid}-${mc_version}"
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-sourceSets
-{
-	main
-	test
-}
+runs {
+	configureEach {
+		systemProperty 'forge.logging.console.level', 'debug'
+		modSource project.sourceSets.main
+	}
 
-java
-{
-	withSourcesJar()
-	withJavadocJar()
-}
+	client {
+		// Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+		systemProperty 'forge.enabledGameTestNamespaces', project.modid
+	}
 
-minecraft {
-    mappings channel: 'official', version: "${mc_version}"    
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
-    runs {
-        client {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            //property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                bagofyurting {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        server {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            //property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                bagofyurting {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        data {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            //property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-
-            // Recommended logging level for the console
-            property 'forge.logging.console.level', 'debug'
-
-            args '--mod', 'bagofyurting', '--all', '--output', file('src/generated/resources/')
-
-            mods {
-                bagofyurting {
-                    source sourceSets.main
-                }
-            }
-        }
-    }
+	server {
+		systemProperty 'forge.enabledGameTestNamespaces', project.modid
+	}
 }
 
 repositories {
+	mavenCentral()
 	maven {url = "https://maven.blamejared.com/"}
+	maven {url = "https://cubicinterpolation.net/maven/"}
+	maven {url = "https://maven.terraformersmc.com"}
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${mc_version}-${forge_version}"
-
- 	compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
- 	compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
- 	runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
+	implementation "net.neoforged:neoforge:${neo_version}"
+	compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
+	compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
+	// at runtime, use the full JEI jar for NeoForge
+	//runtimeOnly "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+	
+	implementation "dev.emi:emi-neoforge:${emi_version}"
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
 jar {
-	//from sourceSets.api.output
     manifest {
         attributes([
-            "Specification-Title": "bagofyurting",
+            "Specification-Title": "${modid}",
             "Specification-Vendor": "Commoble",
             "Specification-Version": "1", // We are version 1 of ourselves
             "Implementation-Title": project.name,
@@ -118,32 +59,14 @@ jar {
     }
 }
 
-// Example configuration to allow publishing using the maven-publish task
-// This is the preferred method to reobfuscate your jar file
-jar.finalizedBy('reobfJar') 
-// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
-//publish.dependsOn('reobfJar')
-
-artifacts {
-	archives javadocJar
-	archives sourcesJar
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
-// run "gradlew build publish" to build jars and generate a maven repo for them
-// run "gradlew build" to build the jars without mavening them
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-			artifactId project.archivesBaseName
-            artifact jar
-			artifact sourcesJar
-			artifact javadocJar
-        }
-    }
-    repositories {
-        maven {
-			name="localMaven"
-            url "file:///${project.projectDir}/maven"
-        }
+// IDEA no longer automatically downloads sources/javadoc jars for dependencies, so we need to explicitly enable the behavior.
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
     }
 }

@@ -1,13 +1,15 @@
 package commoble.bagofyurting.client.jei;
 
+import static commoble.bagofyurting.BagOfYurtingMod.UPGRADE_RECIPE_ID;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntFunction;
 
+import commoble.bagofyurting.BagOfYurtingItem;
 import commoble.bagofyurting.BagOfYurtingMod;
-import commoble.bagofyurting.ObjectNames;
-import commoble.bagofyurting.ShapedBagUpgradeRecipe;
 import commoble.bagofyurting.ShapelessBagUpgradeRecipe;
+import commoble.bagofyurting.UpgradeRecipeHacks;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.constants.RecipeTypes;
@@ -20,12 +22,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
 @JeiPlugin
 public class JEIProxy implements IModPlugin
 {
-	public static final ResourceLocation ID = new ResourceLocation(BagOfYurtingMod.MODID, BagOfYurtingMod.MODID);
-	public static final ResourceLocation UPGRADE_RECIPE_ID = new ResourceLocation(BagOfYurtingMod.MODID, ObjectNames.UPGRADE_RECIPE);
+	public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath(BagOfYurtingMod.MODID, BagOfYurtingMod.MODID);
 
 	@Override
 	public ResourceLocation getPluginUid()
@@ -45,7 +47,7 @@ public class JEIProxy implements IModPlugin
 	
 	private static String getBagOfYurtingSubtype(ItemStack stack, UidContext context)
 	{
-		return Integer.toString(BagOfYurtingMod.get().bagOfYurtingItem.get().getRadius(stack));
+		return Integer.toString(BagOfYurtingItem.getRadius(stack));
 	}
 
 	/**
@@ -66,22 +68,20 @@ public class JEIProxy implements IModPlugin
 			.ifPresent(recipe -> registerExtraRecipes(recipe, registration));
 	}
 	
-	private static void registerExtraRecipes(Recipe<?> baseRecipe, IRecipeRegistration registration)
+	private static void registerExtraRecipes(RecipeHolder<?> recipeHolder, IRecipeRegistration registration)
 	{
-		IntFunction<CraftingRecipe> recipeFactory = null;
-		if (baseRecipe instanceof ShapedBagUpgradeRecipe)
+		ResourceLocation id = recipeHolder.id();
+		Recipe<?> baseRecipe = recipeHolder.value();
+		IntFunction<RecipeHolder<CraftingRecipe>> recipeFactory = null;
+		if (baseRecipe instanceof ShapelessBagUpgradeRecipe bagRecipe)
 		{
-			recipeFactory = i -> JEIUpgradeRecipeHacks.getFakeShapedRecipe((ShapedBagUpgradeRecipe)baseRecipe, i);
-		}
-		else if (baseRecipe instanceof ShapelessBagUpgradeRecipe)
-		{
-			recipeFactory = i -> JEIUpgradeRecipeHacks.getFakeShapelessRecipe((ShapelessBagUpgradeRecipe)baseRecipe, i);
+			recipeFactory = i -> UpgradeRecipeHacks.getFakeShapelessRecipe(id, bagRecipe, i);
 		}
 		else
 		{
 			return;
 		}
-		List<CraftingRecipe> extraRecipes = new ArrayList<>();
+		List<RecipeHolder<CraftingRecipe>> extraRecipes = new ArrayList<>();
 		// recipe for 0 uses a different recipe, JEI finds the recipe for 1 from our recipe json
 		// we need to add fake recipes starting at 2
 		int iterations = BagOfYurtingMod.get().serverConfig().creativeUpgradeIterations().get();

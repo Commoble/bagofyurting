@@ -1,16 +1,18 @@
 package commoble.bagofyurting.client;
 
+import commoble.bagofyurting.BagOfYurtingItem;
 import commoble.bagofyurting.BagOfYurtingMod;
 import commoble.bagofyurting.IsWasSprintPacket;
-import commoble.bagofyurting.OptionalSpawnParticlePacket;
+import commoble.bagofyurting.OptionalSpawnParticlesPacket;
 import commoble.bagofyurting.util.ConfigHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.world.item.DyeableLeatherItem;
-import net.minecraftforge.client.event.RegisterColorHandlersEvent;
-import net.minecraftforge.event.TickEvent.ClientTickEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.config.ModConfig;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public class ClientProxy
 {
@@ -26,17 +28,17 @@ public class ClientProxy
 		
 		forgeBus.addListener(ClientProxy::onClientTick);
 		
-		config = ConfigHelper.register(ModConfig.Type.CLIENT, ClientConfig::create);
+		config = ConfigHelper.register(BagOfYurtingMod.MODID, ModConfig.Type.CLIENT, ClientConfig::create);
 	}
 	
 	static void registerItemColors(RegisterColorHandlersEvent.Item event)
 	{
 		event.register(
-			(stack, layer) ->  layer != 0 ? -1 : ((DyeableLeatherItem)stack.getItem()).getColor(stack),
+			(stack, layer) ->  layer != 0 ? -1 : DyedItemColor.getOrDefault(stack, BagOfYurtingItem.UNDYED_COLOR),
 			BagOfYurtingMod.get().bagOfYurtingItem.get());
 	}
 	
-	static void onClientTick(ClientTickEvent event)
+	static void onClientTick(ClientTickEvent.Post event)
 	{
 		Minecraft mc = Minecraft.getInstance();
 		
@@ -47,23 +49,21 @@ public class ClientProxy
 			if (wasOverridingSafetyList != isOverridingSafetyList)	// change in sprint key detected
 			{
 				overridingSafetyList = isOverridingSafetyList;
-				BagOfYurtingMod.CHANNEL.sendToServer(new IsWasSprintPacket(overridingSafetyList));
+				PacketDistributor.sendToServer(new IsWasSprintPacket(overridingSafetyList));
 			}
 		}
 	}
 	
-	public static boolean canSpawnBagParticles()
+	public static void onHandleOptionalSpawnParticlePacket(OptionalSpawnParticlesPacket packet)
 	{
-		return config.enableParticles().get();
-	}
-	
-	public static void onHandleOptionalSpawnParticlePacket(OptionalSpawnParticlePacket packet)
-	{
-		Minecraft mc = Minecraft.getInstance();
-		ClientPacketListener handler = mc.getConnection();
-		if (handler != null)
+		if (config.enableParticles().get())
 		{
-			packet.handle(handler);
+			Minecraft mc = Minecraft.getInstance();
+			ClientPacketListener handler = mc.getConnection();
+			if (handler != null)
+			{
+				packet.toVanillaPacket().handle(handler);
+			}
 		}
 	}
 }

@@ -1,11 +1,11 @@
 package commoble.bagofyurting;
 
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.IntValue;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.IntValue;
 
 public record ServerConfig(IntValue minPermissionToYurtUnyurtableBlocks, IntValue creativeUpgradeIterations)
 {
-	public static ServerConfig create(ForgeConfigSpec.Builder builder)
+	public static ServerConfig create(ModConfigSpec.Builder builder)
 	{
 		return new ServerConfig(
 			builder

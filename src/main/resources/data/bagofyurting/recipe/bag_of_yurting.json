@@ -11,10 +11,10 @@
       "tag": "minecraft:wool"
     },
     "E": {
-      "tag": "forge:ender_pearls"
+      "tag": "c:ender_pearls"
     }
   },
   "result": {
-    "item": "bagofyurting:bag_of_yurting"
+    "id": "bagofyurting:bag_of_yurting"
   }
 }

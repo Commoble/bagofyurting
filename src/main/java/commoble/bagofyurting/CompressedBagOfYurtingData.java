@@ -18,30 +18,14 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class CompressedBagOfYurtingData
+public record CompressedBagOfYurtingData(List<BlockState> states, List<CompressedStateData> data)
 {
 	public static final Logger LOGGER = LogManager.getLogger();
 	
 	public static final Codec<CompressedBagOfYurtingData> CODEC = RecordCodecBuilder.create(builder -> builder.group(
-			BlockState.CODEC.listOf().fieldOf("states").forGetter(CompressedBagOfYurtingData::getStates),
-			CompressedStateData.CODEC.listOf().fieldOf("data").forGetter(CompressedBagOfYurtingData::getData)
+			BlockState.CODEC.listOf().fieldOf("states").forGetter(CompressedBagOfYurtingData::states),
+			CompressedStateData.CODEC.listOf().fieldOf("data").forGetter(CompressedBagOfYurtingData::data)
 		).apply(builder, CompressedBagOfYurtingData::new));
-	
-	private final List<BlockState> states;
-	public List<BlockState> getStates() { return this.states; }
-	
-	private final List<CompressedStateData> data;
-	public List<CompressedStateData> getData() { return this.data; }
-	
-	/**
-	 * @param states A list of blockstates
-	 * @param data A list of CompressedStateDatas, where the stateindex of each data object refers to an index in the states list
-	 */
-	public CompressedBagOfYurtingData(List<BlockState> states, List<CompressedStateData> data)
-	{
-		this.states = states;
-		this.data = data;
-	}
 	
 	public BagOfYurtingData uncompress()
 	{

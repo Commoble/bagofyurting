@@ -1,6 +1,5 @@
 {
 	"type": "bagofyurting:shapeless_bag_of_yurting_upgrade",
-	"category": "misc",
 	"ingredients": 
 	[
 		{
@@ -12,6 +11,6 @@
 	],
 	"result": 
 	{
-		"item": "bagofyurting:bag_of_yurting"
+		"id": "bagofyurting:bag_of_yurting"
 	}
 }

@@ -12,9 +12,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.joml.Vector3f;
 
 import commoble.bagofyurting.CompressedBagOfYurtingData.CompressedStateData;
-import commoble.bagofyurting.util.NBTMapHelper;
 import commoble.bagofyurting.util.RotationUtil;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -23,7 +23,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -37,24 +36,16 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.BlockSnapshot;
-import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.event.level.BlockEvent.BreakEvent;
-import net.minecraftforge.event.level.BlockEvent.EntityMultiPlaceEvent;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.BlockSnapshot;
+import net.neoforged.neoforge.common.util.FakePlayerFactory;
+import net.neoforged.neoforge.event.level.BlockEvent.BreakEvent;
+import net.neoforged.neoforge.event.level.BlockEvent.EntityMultiPlaceEvent;
 
 public class BagOfYurtingData
 {
 	public static final String NBT_KEY = "yurtdata"; // For compat reasons
 	public static final Direction BASE_DIRECTION = Direction.SOUTH;	// south is arbitrarily chosen for having horizontal index 0
-
-	private static final NBTMapHelper<BlockPos, CompoundTag, StateData, CompoundTag> mapper = new NBTMapHelper<>(
-		NBT_KEY,
-		NbtUtils::writeBlockPos,
-		NbtUtils::readBlockPos,
-		StateData::write,
-		StateData::read);
 
 	private final Map<BlockPos, StateData> map;
 
@@ -201,7 +192,7 @@ public class BagOfYurtingData
 
 			Level.playSound(null, new BlockPos((int)center.x, (int)center.y, (int)center.z), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1, 1f);
 
-			OptionalSpawnParticlePacket.spawnParticlesFromServer(Level, ParticleTypes.EXPLOSION, center.x(), center.y(), center.z(), particles, xRadius, yRadius, zRadius, 0);
+			OptionalSpawnParticlesPacket.spawnParticlesFromServer(Level, ParticleTypes.EXPLOSION, center, new Vector3f((float)xRadius, (float)yRadius, (float)zRadius), particles);
 
 		}
 	}
@@ -243,7 +234,7 @@ public class BagOfYurtingData
 		{
 			// tags allow this block if the block isn't blacklisted, and if either the whitelist contains the block or is empty
 			return !state.is(BagOfYurtingMod.Tags.Blocks.BLACKLIST)
-				&& (ForgeRegistries.BLOCKS.tags().getTag(BagOfYurtingMod.Tags.Blocks.WHITELIST).isEmpty()
+				&& (BuiltInRegistries.BLOCK.getOrCreateTag(BagOfYurtingMod.Tags.Blocks.WHITELIST).size() == 0
 					|| state.is(BagOfYurtingMod.Tags.Blocks.WHITELIST));
 		}
 	}
@@ -259,7 +250,7 @@ public class BagOfYurtingData
 		// so we use a fake player if player is null
 		Player eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerLevel)Level);
 		BreakEvent event = new BreakEvent(Level, pos, state, eventPlayer);
-		MinecraftForge.EVENT_BUS.post(event);
+		NeoForge.EVENT_BUS.post(event);
 		return !event.isCanceled();
 	}
 
@@ -280,7 +271,7 @@ public class BagOfYurtingData
 
 		BlockState statePlacedAgainst = level.getBlockState(context.getClickedPos());
 		EntityMultiPlaceEvent event = new EntityMultiPlaceEvent(snapshots, statePlacedAgainst, eventPlayer);
-		MinecraftForge.EVENT_BUS.post(event);
+		NeoForge.EVENT_BUS.post(event);
 		return !event.isCanceled();
 	}
 	
@@ -296,7 +287,7 @@ public class BagOfYurtingData
 		BlockState state = Level.getBlockState(pos);
 		BlockState rotatedState = state.rotate(Level, pos, rotation);
 		BlockEntity te = Level.getBlockEntity(pos);
-		CompoundTag nbt = te == null ? new CompoundTag() : te.saveWithoutMetadata();
+		CompoundTag nbt = te == null ? new CompoundTag() : te.saveWithoutMetadata(Level.registryAccess());
 		return new StateData(rotatedState, nbt);
 	}
 
@@ -324,18 +315,6 @@ public class BagOfYurtingData
 	{
 		return this.map.isEmpty();
 	}
-
-	public CompoundTag writeIntoNBT(CompoundTag nbt)
-	{
-		mapper.write(this.map, nbt);
-		return nbt;
-	}
-
-	/** Creates a new instance from an NBT compound. This assumes that the given nbt has the "yurt" key within **/
-	public static BagOfYurtingData read(CompoundTag nbt)
-	{
-		return new BagOfYurtingData(mapper.read(nbt));
-	}
 	
 	public CompressedBagOfYurtingData compress()
 	{
@@ -346,7 +325,7 @@ public class BagOfYurtingData
 		this.map.forEach((pos,stateData) ->
 		{
 			final BlockState state = stateData.state;
-			@Nullable CompoundTag nbt = stateData.BlockEntityData;
+			@Nullable CompoundTag nbt = stateData.blockEntityData;
 			// uncompressed (old) format uses empty nbts if no data is present, compressed format uses optionals
 			final Optional<CompoundTag> optionalNBT = nbt == null || nbt.isEmpty() ? Optional.empty() : Optional.of(nbt);
 			// if we haven't stored this specific blockstate yet,
@@ -371,12 +350,12 @@ public class BagOfYurtingData
 		public static final String TILE ="data";
 
 		private final @Nonnull BlockState state;
-		private final @Nonnull CompoundTag BlockEntityData;
+		private final @Nonnull CompoundTag blockEntityData;
 
 		public StateData(@Nonnull BlockState state, @Nonnull CompoundTag BlockEntityData)
 		{
 			this.state = state;
-			this.BlockEntityData = BlockEntityData;
+			this.blockEntityData = BlockEntityData;
 		}
 
 		public BlockState getState()
@@ -391,33 +370,14 @@ public class BagOfYurtingData
 		
 		public void setBlockEntityData(Level level, BlockPos pos, Rotation unrotation, BlockPos minYurt, BlockPos maxYurt, BlockPos origin)
 		{
-			if (!this.BlockEntityData.isEmpty())
+			if (!this.blockEntityData.isEmpty())
 			{
 				BlockEntity te = level.getBlockEntity(pos);
 				if (te != null)
 				{
-					te.load(BlockEntityData);
+					te.loadWithComponents(this.blockEntityData, level.registryAccess());
 				}
 			}
-		}
-
-		public CompoundTag write()
-		{
-			CompoundTag nbt = new CompoundTag();
-
-			nbt.put(BLOCKSTATE, NbtUtils.writeBlockState(this.state));
-			nbt.put(TILE, this.BlockEntityData);
-
-			return nbt;
-		}
-
-		@SuppressWarnings("deprecation")
-		public static StateData read(CompoundTag nbt)
-		{
-			BlockState state = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), nbt.getCompound(BLOCKSTATE));
-			CompoundTag te = nbt.getCompound(TILE);
-
-			return new StateData(state, te);
 		}
 	}
 }

@@ -2,28 +2,23 @@ package commoble.bagofyurting;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
-import commoble.bagofyurting.storage.DataIdNBTHelper;
-import commoble.bagofyurting.storage.StorageManager;
 import net.minecraft.ChatFormatting;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.item.DyeableLeatherItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
 /**
  * This item collapses a portion of the Level into the item's internal storage
@@ -73,10 +68,10 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  * The minimum permission level to ignore these tags is adjustable in the mod's
  * server config. Players in creative mode always ignore these tags.
  */
-public class BagOfYurtingItem extends Item implements DyeableLeatherItem
+public class BagOfYurtingItem extends Item
 {
 	public static final String RADIUS_KEY = "radius";
-	public static final int UNDYED_COLOR = 0xFFFFFF;
+	public static final int UNDYED_COLOR = 0xFFFFFFFF;
 
 	public BagOfYurtingItem(Properties properties)
 	{
@@ -86,78 +81,46 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 	@Override
 	public boolean isFoil(ItemStack stack)
 	{
-		return getDataReader(stack) != null;
+		return stack.has(BagOfYurtingMod.get().yurtDataComponent.get());
 	}
 
-	public int getRadius(ItemStack stack)
+	public static int getRadius(ItemStack stack)
 	{
-		return stack.getOrCreateTag().getInt(RADIUS_KEY);
+		Integer radius = stack.get(BagOfYurtingMod.get().radiusComponent.get());
+		return radius == null ? 0 : radius;
 	}
 
-	public int getDiameter(ItemStack stack)
+	public static int getDiameter(ItemStack stack)
 	{
-		return this.getRadius(stack) * 2 + 1;
+		return getRadius(stack) * 2 + 1;
 	}
 
-	public ItemStack withRadius(ItemStack stack, int radius)
+	public static ItemStack withRadius(ItemStack stack, int radius)
 	{
 		ItemStack newStack = stack.copy();
-		newStack.getOrCreateTag().putInt(RADIUS_KEY, radius);
+		newStack.set(BagOfYurtingMod.get().radiusComponent.get(), radius);
 		return newStack;
-	}
-
-	/**
-	 * Converting NBT to the map data can be expensive if the NBT is not present,
-	 * returns a null supplier if the NBT is present, return a non-null supplier
-	 * that generates the data
-	 */
-	public static @Nullable Function<MinecraftServer, BagOfYurtingData> getDataReader(ItemStack stack)
-	{
-		CompoundTag nbt = stack.getOrCreateTag();
-		if (DataIdNBTHelper.contains(nbt))
-		{
-			return server -> {
-				String dataId = DataIdNBTHelper.get(nbt);
-				return StorageManager.load(server, dataId);
-			};
-		}
-		else if (BagOfYurtingData.doesNBTContainYurtData(nbt)) // For compat reasons
-		{
-			return server -> BagOfYurtingData.read(nbt);
-		}
-		else
-		{
-			return null;
-		}
-	}
-
-	@Override
-	public int getColor(ItemStack stack)
-	{
-		CompoundTag CompoundTag = stack.getTagElement("display");
-		return CompoundTag != null && CompoundTag.contains("color", 99) ? CompoundTag.getInt("color") : UNDYED_COLOR;
 	}
 
 	@Override
 	public InteractionResult useOn(UseOnContext context)
 	{
 		Level Level = context.getLevel();
-		if (Level instanceof ServerLevel)
+		if (Level instanceof ServerLevel serverLevel)
 		{
-			// check NBT
-			// if NBT has data, attempt to unload contents
+			// if bag has data, attempt to unload contents
 			// otherwise, attempt to store contents
 
-			Function<MinecraftServer, BagOfYurtingData> dataGetter = getDataReader(context.getItemInHand());
-			MinecraftServer server = ((ServerLevel)Level).getServer();
+			MinecraftServer server = serverLevel.getServer();
 
-			if (dataGetter == null)
+			CompressedBagOfYurtingData compressedData = context.getItemInHand().get(BagOfYurtingMod.get().yurtDataComponent.get());
+			if (compressedData == null)
 			{
 				this.loadBag(server, context);
 			}
 			else
 			{
-				this.unloadBag(context, dataGetter.apply(server));
+				this.unloadBag(context, compressedData.uncompress());
 			}
 		}
 
@@ -168,15 +131,11 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 	{
 		InteractionHand hand = context.getHand();
 		ItemStack oldStack = context.getPlayer().getItemInHand(hand);
-		BagOfYurtingData data = BagOfYurtingData.yurtBlocksAndConvertToData(context, this.getRadius(oldStack));
+		BagOfYurtingData data = BagOfYurtingData.yurtBlocksAndConvertToData(context, getRadius(oldStack));
 
 		if (!data.isEmpty())
 		{
-			String id = DataIdNBTHelper.generate(server);
-			StorageManager.save(id, data);
-			ItemStack newStack = oldStack.copy();
-			DataIdNBTHelper.set(newStack.getOrCreateTag(), id);
-			context.getPlayer().setItemInHand(context.getHand(), newStack);
+			context.getItemInHand().set(BagOfYurtingMod.get().yurtDataComponent.get(), data.compress());
 		}
 		else
 		{
@@ -189,19 +148,11 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 		InteractionHand hand = context.getHand();
 		ItemStack oldStack = context.getPlayer().getItemInHand(hand);
 		// attempt to revert unload bag into Levelspace
-		boolean success = data.attemptUnloadIntoLevel(context, this.getRadius(oldStack));
+		boolean success = data.attemptUnloadIntoLevel(context, getRadius(oldStack));
 
 		if (success)
 		{
-			ItemStack newStack = oldStack.copy();
-			CompoundTag tag = newStack.getOrCreateTag();
-			tag.put(BagOfYurtingData.NBT_KEY, new CompoundTag()); // for compat reasons
-			String id = DataIdNBTHelper.remove(tag);
-			if (id != null)
-			{
-				StorageManager.remove(id);
-			}
-			context.getPlayer().setItemInHand(context.getHand(), newStack);
+			context.getItemInHand().remove(BagOfYurtingMod.get().yurtDataComponent.get());
 		}
 		else
 		{
@@ -221,10 +172,11 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 			if (item instanceof BagOfYurtingItem)
 			{
 				foundBag = true;
-				int newRadius = BagOfYurtingMod.get().bagOfYurtingItem.get().getRadius(stack);
-				if (BagOfYurtingMod.get().bagOfYurtingItem.get().hasCustomColor(stack))
+				int newRadius = getRadius(stack);
+				@Nullable DyedItemColor color = stack.get(DataComponents.DYED_COLOR);
+				if (color != null)
 				{
-					dyes.add(BagOfYurtingMod.get().bagOfYurtingItem.get().getColor(stack));
+					dyes.add(color.rgb());
 				}
 
 				if (newRadius < bagRadius)
@@ -238,7 +190,7 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 			bagRadius = 0;
 		}
 		
-		ItemStack actualOutput = BagOfYurtingMod.get().bagOfYurtingItem.get().withRadius(output, bagRadius + 1);
+		ItemStack actualOutput = BagOfYurtingItem.withRadius(output, bagRadius + 1);
 		int colors = dyes.size();
 		if (colors > 0)
 		{
@@ -257,7 +209,7 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 			
 			int finalColor = finalRed + finalGreen + finalBlue;
 			
-			BagOfYurtingMod.get().bagOfYurtingItem.get().setColor(actualOutput, finalColor);
+			actualOutput.set(DataComponents.DYED_COLOR, new DyedItemColor(finalColor, true));
 		}
 		
 
@@ -268,10 +220,9 @@ public class BagOfYurtingItem extends Item implements DyeableLeatherItem
 	 * allows items to add custom lines of information to the mouseover description
 	 */
 	@Override
-	@OnlyIn(Dist.CLIENT)
-	public void appendHoverText(ItemStack stack, @Nullable Level LevelIn, List<Component> tooltip, TooltipFlag flagIn)
+	public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flagIn)
 	{
-		int diameter = this.getDiameter(stack);
+		int diameter = getDiameter(stack);
 		String sizeText = String.format("%sx%sx%s", diameter, diameter, diameter);
 		tooltip.add(Component.literal(sizeText).setStyle((Style.EMPTY.withItalic(true).applyFormat(ChatFormatting.GRAY))));
 	}

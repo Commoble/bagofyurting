@@ -1,41 +1,38 @@
 package commoble.bagofyurting;
 
+import com.mojang.serialization.Codec;
+
 import commoble.bagofyurting.client.ClientProxy;
-import commoble.bagofyurting.storage.StorageManager;
 import commoble.bagofyurting.util.ConfigHelper;
+import commoble.bagofyurting.util.SimpleRecipeSerializer;
+import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.ShapedRecipe;
-import net.minecraft.world.item.crafting.ShapelessRecipe;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig.Type;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 @Mod(BagOfYurtingMod.MODID)
 public class BagOfYurtingMod
 {
 	public static final String MODID = "bagofyurting";
+	public static final ResourceLocation UPGRADE_RECIPE_ID = ResourceLocation.fromNamespaceAndPath(BagOfYurtingMod.MODID, ObjectNames.UPGRADE_RECIPE);
 	
 	private static BagOfYurtingMod instance;
 	public static BagOfYurtingMod get() { return instance; }
@@ -46,53 +43,50 @@ public class BagOfYurtingMod
 		public static final class Blocks
 		{
 			private Blocks() {};
-			public static final TagKey<Block> WHITELIST = TagKey.create(Registries.BLOCK, new ResourceLocation(MODID, "whitelist"));
-			public static final TagKey<Block> BLACKLIST = TagKey.create(Registries.BLOCK, new ResourceLocation(MODID, "blacklist"));
-			public static final TagKey<Block> REPLACEABLE = TagKey.create(Registries.BLOCK, new ResourceLocation(MODID, "replaceable"));
+			public static final TagKey<Block> WHITELIST = TagKey.create(Registries.BLOCK, id("whitelist"));
+			public static final TagKey<Block> BLACKLIST = TagKey.create(Registries.BLOCK, id("blacklist"));
+			public static final TagKey<Block> REPLACEABLE = TagKey.create(Registries.BLOCK, id("replaceable"));
 		}
 	}
 	
 	private final ServerConfig serverConfig;
 	public ServerConfig serverConfig() { return this.serverConfig; }
 	
-	public static final String PROTOCOL_VERSION = "0";
-	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-			new ResourceLocation(MODID, "main"),
-			() -> PROTOCOL_VERSION,
-			PROTOCOL_VERSION::equals,
-			PROTOCOL_VERSION::equals
-			);
-	
 	// registry objects
-	public final RegistryObject<BagOfYurtingItem> bagOfYurtingItem;
-	public final RegistryObject<RecipeSerializer<ShapedRecipe>> shapedUpgradeRecipeSerializer;
-	public final RegistryObject<RecipeSerializer<ShapelessRecipe>> shapelessUpgradeRecipeSerializer;
+	public final DeferredHolder<Item, BagOfYurtingItem> bagOfYurtingItem;
+	public final DeferredHolder<RecipeSerializer<?>, SimpleRecipeSerializer<ShapelessBagUpgradeRecipe>> shapelessUpgradeRecipeSerializer;
+	public final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> radiusComponent;
+	public final DeferredHolder<DataComponentType<?>, DataComponentType<CompressedBagOfYurtingData>> yurtDataComponent;
 
 	/** One instance of this class is created by forge when mods are loaded **/
-	public BagOfYurtingMod()
+	public BagOfYurtingMod(IEventBus modBus)
 	{
 		instance = this;
 		
-		this.serverConfig = ConfigHelper.register(Type.SERVER, ServerConfig::create);
+		this.serverConfig = ConfigHelper.register(MODID, ModConfig.Type.SERVER, ServerConfig::create);
 		
-		IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
-		IEventBus forgeBus = MinecraftForge.EVENT_BUS;
+		IEventBus forgeBus = NeoForge.EVENT_BUS;
 		
 		// make deferred registers
-		DeferredRegister<Item> items = makeDeferredRegister(modBus, ForgeRegistries.ITEMS);
-		DeferredRegister<RecipeSerializer<?>> recipeSerializers = makeDeferredRegister(modBus, ForgeRegistries.RECIPE_SERIALIZERS);
+		DeferredRegister<Item> items = makeDeferredRegister(modBus, Registries.ITEM);
+		DeferredRegister<RecipeSerializer<?>> recipeSerializers = makeDeferredRegister(modBus, Registries.RECIPE_SERIALIZER);
+		DeferredRegister<DataComponentType<?>> dataComponents = makeDeferredRegister(modBus, Registries.DATA_COMPONENT_TYPE);
 		
 		// register objects
 		this.bagOfYurtingItem = items.register(ObjectNames.BAG_OF_YURTING, () -> new BagOfYurtingItem(new Item.Properties().stacksTo(1)));
-		this.shapedUpgradeRecipeSerializer = recipeSerializers.register(ObjectNames.SHAPED_UPGRADE_RECIPE, () -> new ShapedBagUpgradeRecipe.Serializer());
-		this.shapelessUpgradeRecipeSerializer = recipeSerializers.register(ObjectNames.SHAPELESS_UPGRADE_RECIPE, () -> new ShapelessBagUpgradeRecipe.Serializer());
+		this.shapelessUpgradeRecipeSerializer = recipeSerializers.register(ObjectNames.SHAPELESS_UPGRADE_RECIPE, () -> new SimpleRecipeSerializer<ShapelessBagUpgradeRecipe>(ShapelessBagUpgradeRecipe.CODEC, ShapelessBagUpgradeRecipe.STREAM_CODEC));
+		this.radiusComponent = dataComponents.register(ObjectNames.RADIUS, () -> DataComponentType.<Integer>builder()
+			.persistent(Codec.INT)
+			.networkSynchronized(ByteBufCodecs.INT)
+			.build());
+		this.yurtDataComponent = dataComponents.register(ObjectNames.YURTDATA, () -> DataComponentType.<CompressedBagOfYurtingData>builder()
+			.persistent(CompressedBagOfYurtingData.CODEC)
+			.cacheEncoding()
+			.build());
 		
 		// subscribe events to mod bus
 		modBus.addListener(this::onBuildCreativeTabs);
-		modBus.addListener(this::onCommonSetup);
-
-		// subscribe events to forge bus
-		forgeBus.addListener(this::onLevelSave);
+		modBus.addListener(this::onRegisterPayloadHandlers);		
 
 		if (FMLEnvironment.dist == Dist.CLIENT)
 		{
@@ -100,9 +94,9 @@ public class BagOfYurtingMod
 		}
 	}
 	
-	private static <T> DeferredRegister<T> makeDeferredRegister(IEventBus modBus, IForgeRegistry<T> registry)
+	private static <T> DeferredRegister<T> makeDeferredRegister(IEventBus modBus, ResourceKey<Registry<T>> registryKey)
 	{
-		DeferredRegister<T> register = DeferredRegister.create(registry, MODID);
+		DeferredRegister<T> register = DeferredRegister.create(registryKey, MODID);
 		register.register(modBus);
 		return register;
 	}
@@ -116,33 +110,20 @@ public class BagOfYurtingMod
 
 			for (int i=0; i<7; i++)
 			{
-				event.accept(item.withRadius(baseStack, i));
+				event.accept(BagOfYurtingItem.withRadius(baseStack, i));
 			}
 		}
 	}
 	
-	void onCommonSetup(FMLCommonSetupEvent event)
+	void onRegisterPayloadHandlers(RegisterPayloadHandlersEvent event)
 	{
-		// register packets
-		int packetID = 0;
-		CHANNEL.registerMessage(packetID++,
-			IsWasSprintPacket.class,
-			IsWasSprintPacket::write,
-			IsWasSprintPacket::read,
-			IsWasSprintPacket::handle);
-		CHANNEL.registerMessage(packetID++,
-			OptionalSpawnParticlePacket.class,
-			OptionalSpawnParticlePacket::write,
-			OptionalSpawnParticlePacket::read,
-			OptionalSpawnParticlePacket::handle);
+		event.registrar("0")
+			.playToServer(IsWasSprintPacket.TYPE, IsWasSprintPacket.STREAM_CODEC, IsWasSprintPacket::handle)
+			.playToClient(OptionalSpawnParticlesPacket.TYPE, OptionalSpawnParticlesPacket.STREAM_CODEC, OptionalSpawnParticlesPacket::handle);
 	}
-
-	void onLevelSave(LevelEvent.Save event)
+	
+	public static ResourceLocation id(String path)
 	{
-		LevelAccessor Level = event.getLevel();
-		if (Level instanceof ServerLevel)
-		{
-			StorageManager.onSave((ServerLevel)Level);
-		}
+		return ResourceLocation.fromNamespaceAndPath(MODID, path);
 	}
 }
