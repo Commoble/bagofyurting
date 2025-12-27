@@ -1,4 +1,4 @@
-package commoble.bagofyurting;
+package net.commoble.bagofyurting;
 
 public class ObjectNames
 {

@@ -1,4 +1,4 @@
-package commoble.bagofyurting;
+package net.commoble.bagofyurting;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,11 +13,15 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.joml.Vector3f;
+import org.slf4j.Logger;
 
-import commoble.bagofyurting.CompressedBagOfYurtingData.CompressedStateData;
-import commoble.bagofyurting.util.RotationUtil;
+import com.google.common.collect.Lists;
+import com.mojang.logging.LogUtils;
+
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.commoble.bagofyurting.CompressedBagOfYurtingData.CompressedStateData;
+import net.commoble.bagofyurting.util.RotationUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -26,6 +30,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -34,6 +39,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.NeoForge;
@@ -44,6 +50,7 @@ import net.neoforged.neoforge.event.level.BlockEvent.EntityMultiPlaceEvent;
 
 public class BagOfYurtingData
 {
+	public static final Logger LOGGER = LogUtils.getLogger();
 	public static final String NBT_KEY = "yurtdata"; // For compat reasons
 	public static final Direction BASE_DIRECTION = Direction.SOUTH;	// south is arbitrarily chosen for having horizontal index 0
 
@@ -199,7 +206,7 @@ public class BagOfYurtingData
 	
 	private static boolean canPlayerOverrideSafetyLists(@Nullable Player player)
 	{
-		if (player != null && (player.isCreative() || player.hasPermissions(BagOfYurtingMod.get().serverConfig().minPermissionToYurtUnyurtableBlocks().get())))
+		if (player != null && (player.isCreative() || BagOfYurtingMod.hasPermission(player, BagOfYurtingMod.SERVERCONFIG.minPermissionToYurtUnyurtableBlocks().get())))
 		{
 			return TransientPlayerData.isPlayerOverridingSafetyList(player.getUUID());
 		}
@@ -234,7 +241,7 @@ public class BagOfYurtingData
 		{
 			// tags allow this block if the block isn't blacklisted, and if either the whitelist contains the block or is empty
 			return !state.is(BagOfYurtingMod.Tags.Blocks.BLACKLIST)
-				&& (BuiltInRegistries.BLOCK.getOrCreateTag(BagOfYurtingMod.Tags.Blocks.WHITELIST).size() == 0
+				&& (Lists.newArrayList(BuiltInRegistries.BLOCK.getTagOrEmpty(BagOfYurtingMod.Tags.Blocks.WHITELIST)).size() == 0
 					|| state.is(BagOfYurtingMod.Tags.Blocks.WHITELIST));
 		}
 	}
@@ -306,11 +313,6 @@ public class BagOfYurtingData
 		}
 	}
 
-	public static boolean doesNBTContainYurtData(CompoundTag nbt)
-	{
-		return !nbt.getList(NBT_KEY, 10).isEmpty();
-	}
-
 	public boolean isEmpty()
 	{
 		return this.map.isEmpty();
@@ -375,7 +377,10 @@ public class BagOfYurtingData
 				BlockEntity te = level.getBlockEntity(pos);
 				if (te != null)
 				{
-					te.loadWithComponents(this.blockEntityData, level.registryAccess());
+	                try (ProblemReporter.ScopedCollector problems = new ProblemReporter.ScopedCollector(te.problemPath(), LOGGER))
+	                {
+	                    te.loadWithComponents(TagValueInput.create(problems, level.registryAccess(), this.blockEntityData));
+	                }
 				}
 			}
 		}

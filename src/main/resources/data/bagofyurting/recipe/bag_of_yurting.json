@@ -7,12 +7,8 @@
     "www"
   ],
   "key": {
-    "w": {
-      "tag": "minecraft:wool"
-    },
-    "E": {
-      "tag": "c:ender_pearls"
-    }
+    "w": "#minecraft:wool",
+    "E": "#c:ender_pearls"
   },
   "result": {
     "id": "bagofyurting:bag_of_yurting"

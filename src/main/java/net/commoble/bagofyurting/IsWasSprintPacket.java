@@ -1,4 +1,4 @@
-package commoble.bagofyurting;
+package net.commoble.bagofyurting;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;

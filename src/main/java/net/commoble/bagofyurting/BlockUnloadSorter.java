@@ -1,9 +1,9 @@
-package commoble.bagofyurting;
+package net.commoble.bagofyurting;
 
 import java.util.Comparator;
 import java.util.Map.Entry;
 
-import commoble.bagofyurting.BagOfYurtingData.StateData;
+import net.commoble.bagofyurting.BagOfYurtingData.StateData;
 import net.minecraft.core.BlockPos;
 
 public class BlockUnloadSorter implements Comparator<Entry<BlockPos, StateData>>

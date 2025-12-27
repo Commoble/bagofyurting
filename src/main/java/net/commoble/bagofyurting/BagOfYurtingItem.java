@@ -1,7 +1,8 @@
-package commoble.bagofyurting;
+package net.commoble.bagofyurting;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -17,6 +18,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 
@@ -81,12 +83,12 @@ public class BagOfYurtingItem extends Item
 	@Override
 	public boolean isFoil(ItemStack stack)
 	{
-		return stack.has(BagOfYurtingMod.get().yurtDataComponent.get());
+		return stack.has(BagOfYurtingMod.YURT_DATA_COMPONENT.get());
 	}
 
 	public static int getRadius(ItemStack stack)
 	{
-		Integer radius = stack.get(BagOfYurtingMod.get().radiusComponent.get());
+		Integer radius = stack.get(BagOfYurtingMod.RADIUS_COMPONENT.get());
 		return radius == null ? 0 : radius;
 	}
 
@@ -98,7 +100,7 @@ public class BagOfYurtingItem extends Item
 	public static ItemStack withRadius(ItemStack stack, int radius)
 	{
 		ItemStack newStack = stack.copy();
-		newStack.set(BagOfYurtingMod.get().radiusComponent.get(), radius);
+		newStack.set(BagOfYurtingMod.RADIUS_COMPONENT.get(), radius);
 		return newStack;
 	}
 
@@ -113,7 +115,7 @@ public class BagOfYurtingItem extends Item
 
 			MinecraftServer server = serverLevel.getServer();
 
-			CompressedBagOfYurtingData compressedData = context.getItemInHand().get(BagOfYurtingMod.get().yurtDataComponent.get());
+			CompressedBagOfYurtingData compressedData = context.getItemInHand().get(BagOfYurtingMod.YURT_DATA_COMPONENT.get());
 			if (compressedData == null)
 			{
 				this.loadBag(server, context);
@@ -135,7 +137,7 @@ public class BagOfYurtingItem extends Item
 
 		if (!data.isEmpty())
 		{
-			context.getItemInHand().set(BagOfYurtingMod.get().yurtDataComponent.get(), data.compress());
+			context.getItemInHand().set(BagOfYurtingMod.YURT_DATA_COMPONENT.get(), data.compress());
 		}
 		else
 		{
@@ -152,7 +154,7 @@ public class BagOfYurtingItem extends Item
 
 		if (success)
 		{
-			context.getItemInHand().remove(BagOfYurtingMod.get().yurtDataComponent.get());
+			context.getItemInHand().remove(BagOfYurtingMod.YURT_DATA_COMPONENT.get());
 		}
 		else
 		{
@@ -187,7 +189,7 @@ public class BagOfYurtingItem extends Item
 		}
 		if (!foundBag)
 		{
-			bagRadius = 0;
+			return ItemStack.EMPTY;
 		}
 		
 		ItemStack actualOutput = BagOfYurtingItem.withRadius(output, bagRadius + 1);
@@ -209,7 +211,7 @@ public class BagOfYurtingItem extends Item
 			
 			int finalColor = finalRed + finalGreen + finalBlue;
 			
-			actualOutput.set(DataComponents.DYED_COLOR, new DyedItemColor(finalColor, true));
+			actualOutput.set(DataComponents.DYED_COLOR, new DyedItemColor(finalColor));
 		}
 		
 
@@ -220,10 +222,10 @@ public class BagOfYurtingItem extends Item
 	 * allows items to add custom lines of information to the mouseover description
 	 */
 	@Override
-	public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flagIn)
+	public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flagIn)
 	{
 		int diameter = getDiameter(stack);
 		String sizeText = String.format("%sx%sx%s", diameter, diameter, diameter);
-		tooltip.add(Component.literal(sizeText).setStyle((Style.EMPTY.withItalic(true).applyFormat(ChatFormatting.GRAY))));
+		tooltip.accept(Component.literal(sizeText).setStyle((Style.EMPTY.withItalic(true).applyFormat(ChatFormatting.GRAY))));
 	}
 }

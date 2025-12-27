@@ -1,4 +1,4 @@
-package commoble.bagofyurting.util;
+package net.commoble.bagofyurting.util;
 
 import com.mojang.serialization.MapCodec;
 

@@ -1,41 +1,39 @@
-package commoble.bagofyurting.client;
+package net.commoble.bagofyurting.client;
 
-import commoble.bagofyurting.BagOfYurtingItem;
-import commoble.bagofyurting.BagOfYurtingMod;
-import commoble.bagofyurting.IsWasSprintPacket;
-import commoble.bagofyurting.OptionalSpawnParticlesPacket;
-import commoble.bagofyurting.util.ConfigHelper;
+import net.commoble.bagofyurting.BagOfYurtingMod;
+import net.commoble.bagofyurting.IsWasSprintPacket;
+import net.commoble.bagofyurting.OptionalSpawnParticlesPacket;
+import net.commoble.bagofyurting.util.ConfigHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.crafting.RecipeMap;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 public class ClientProxy
 {
 	private static ClientConfig config;
 	public ClientConfig clientConfig() { return config; };
 	
+	public static RecipeMap recipeMap = RecipeMap.EMPTY;
+	
 	public static boolean overridingSafetyList = false;
 	
 	///** Called by mod constructor on mod init, isolated to avoid classloading client classes on server**/
 	public static void subscribeClientEvents(IEventBus modBus, IEventBus forgeBus)
 	{
-		modBus.addListener(ClientProxy::registerItemColors);
-		
+		forgeBus.addListener(ClientProxy::onRecipesReceived);
 		forgeBus.addListener(ClientProxy::onClientTick);
 		
 		config = ConfigHelper.register(BagOfYurtingMod.MODID, ModConfig.Type.CLIENT, ClientConfig::create);
 	}
 	
-	static void registerItemColors(RegisterColorHandlersEvent.Item event)
+	static void onRecipesReceived(RecipesReceivedEvent event)
 	{
-		event.register(
-			(stack, layer) ->  layer != 0 ? -1 : DyedItemColor.getOrDefault(stack, BagOfYurtingItem.UNDYED_COLOR),
-			BagOfYurtingMod.get().bagOfYurtingItem.get());
+		recipeMap = event.getRecipeMap();
 	}
 	
 	static void onClientTick(ClientTickEvent.Post event)
@@ -49,7 +47,7 @@ public class ClientProxy
 			if (wasOverridingSafetyList != isOverridingSafetyList)	// change in sprint key detected
 			{
 				overridingSafetyList = isOverridingSafetyList;
-				PacketDistributor.sendToServer(new IsWasSprintPacket(overridingSafetyList));
+				ClientPacketDistributor.sendToServer(new IsWasSprintPacket(overridingSafetyList));
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-package commoble.bagofyurting;
+package net.commoble.bagofyurting;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.ModConfigSpec.IntValue;

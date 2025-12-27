@@ -1,4 +1,4 @@
-package commoble.bagofyurting;
+package net.commoble.bagofyurting;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
-import commoble.bagofyurting.BagOfYurtingData.StateData;
+import net.commoble.bagofyurting.BagOfYurtingData.StateData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;

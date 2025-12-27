@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "model",
+		"model": "bagofyurting:item/bag_of_yurting",
+		"tints": [
+			{
+				"type": "dye",
+				"default": -1
+			}
+		]
+	}
+}

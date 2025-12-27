@@ -1,4 +1,4 @@
-package commoble.bagofyurting.client;
+package net.commoble.bagofyurting.client;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 import net.neoforged.neoforge.common.ModConfigSpec.BooleanValue;

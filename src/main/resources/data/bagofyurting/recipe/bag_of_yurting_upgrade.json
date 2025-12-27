@@ -2,12 +2,8 @@
 	"type": "bagofyurting:shapeless_bag_of_yurting_upgrade",
 	"ingredients": 
 	[
-		{
-			"item": "bagofyurting:bag_of_yurting"
-		},
-		{
-			"item": "bagofyurting:bag_of_yurting"
-		}
+		"bagofyurting:bag_of_yurting",
+		"bagofyurting:bag_of_yurting"
 	],
 	"result": 
 	{
