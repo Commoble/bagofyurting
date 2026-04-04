@@ -3,10 +3,12 @@ package net.commoble.bagofyurting;
 import java.util.Comparator;
 import java.util.Map.Entry;
 
+import org.jspecify.annotations.NonNull;
+
 import net.commoble.bagofyurting.BagOfYurtingData.StateData;
 import net.minecraft.core.BlockPos;
 
-public class BlockUnloadSorter implements Comparator<Entry<BlockPos, StateData>>
+public class BlockUnloadSorter implements Comparator<@NonNull Entry<BlockPos, StateData>>
 {
 	public static final BlockUnloadSorter INSTANCE = new BlockUnloadSorter();
 	/**

@@ -1,4 +1,4 @@
-Bag of Yurting is a minecraft forge mod that adds a bag that can be used to pick up and store blocks and move them elsewhere.
+Bag of Yurting is a minecraft neoforge mod that adds a bag that can be used to pick up and store blocks and move them elsewhere.
 
 Built jars of Bag of Yurting are available here:
 

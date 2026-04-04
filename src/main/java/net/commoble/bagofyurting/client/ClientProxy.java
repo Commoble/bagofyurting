@@ -15,8 +15,7 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 public class ClientProxy
 {
-	private static ClientConfig config;
-	public ClientConfig clientConfig() { return config; };
+	private static final ClientConfig CONFIG = ConfigHelper.register(BagOfYurtingMod.MODID, ModConfig.Type.CLIENT, ClientConfig::create);
 	
 	public static RecipeMap recipeMap = RecipeMap.EMPTY;
 	
@@ -27,8 +26,6 @@ public class ClientProxy
 	{
 		forgeBus.addListener(ClientProxy::onRecipesReceived);
 		forgeBus.addListener(ClientProxy::onClientTick);
-		
-		config = ConfigHelper.register(BagOfYurtingMod.MODID, ModConfig.Type.CLIENT, ClientConfig::create);
 	}
 	
 	static void onRecipesReceived(RecipesReceivedEvent event)
@@ -42,7 +39,7 @@ public class ClientProxy
 		
 		if (mc.player != null)
 		{
-			boolean isOverridingSafetyList = mc.options.keySprint.isDown() != config.invertSafetyOverride().get();
+			boolean isOverridingSafetyList = mc.options.keySprint.isDown() != CONFIG.invertSafetyOverride().get();
 			boolean wasOverridingSafetyList = overridingSafetyList;
 			if (wasOverridingSafetyList != isOverridingSafetyList)	// change in sprint key detected
 			{
@@ -54,7 +51,7 @@ public class ClientProxy
 	
 	public static void onHandleOptionalSpawnParticlePacket(OptionalSpawnParticlesPacket packet)
 	{
-		if (config.enableParticles().get())
+		if (CONFIG.enableParticles().get())
 		{
 			Minecraft mc = Minecraft.getInstance();
 			ClientPacketListener handler = mc.getConnection();

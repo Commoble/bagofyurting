@@ -6,7 +6,6 @@ import com.mojang.serialization.Codec;
 
 import net.commoble.bagofyurting.client.ClientProxy;
 import net.commoble.bagofyurting.util.ConfigHelper;
-import net.commoble.bagofyurting.util.SimpleRecipeSerializer;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -39,9 +38,6 @@ public class BagOfYurtingMod
 	public static final String MODID = "bagofyurting";
 	public static final ResourceKey<Recipe<?>> UPGRADE_RECIPE_ID = ResourceKey.create(Registries.RECIPE, Identifier.fromNamespaceAndPath(BagOfYurtingMod.MODID, ObjectNames.UPGRADE_RECIPE));
 	
-	private static BagOfYurtingMod instance;
-	public static BagOfYurtingMod get() { return instance; }
-	
 	public static final class Tags
 	{
 		private Tags() {};
@@ -66,7 +62,7 @@ public class BagOfYurtingMod
 		ObjectNames.BAG_OF_YURTING,
 		BagOfYurtingItem::new,
 		props -> props.stacksTo(1));
-	public static final DeferredHolder<RecipeSerializer<?>, SimpleRecipeSerializer<ShapelessBagUpgradeRecipe>> SHAPELESS_UPGRADE_RECIPE_SERIALIZER = RECIPE_SERIALIZERS.register(ObjectNames.SHAPELESS_UPGRADE_RECIPE, () -> new SimpleRecipeSerializer<ShapelessBagUpgradeRecipe>(ShapelessBagUpgradeRecipe.CODEC, ShapelessBagUpgradeRecipe.STREAM_CODEC));;
+	public static final DeferredHolder<RecipeSerializer<?>, RecipeSerializer<ShapelessBagUpgradeRecipe>> SHAPELESS_UPGRADE_RECIPE_SERIALIZER = RECIPE_SERIALIZERS.register(ObjectNames.SHAPELESS_UPGRADE_RECIPE, () -> new RecipeSerializer<ShapelessBagUpgradeRecipe>(ShapelessBagUpgradeRecipe.CODEC, ShapelessBagUpgradeRecipe.STREAM_CODEC));;
 	public static final DeferredHolder<DataComponentType<?>, DataComponentType<Integer>> RADIUS_COMPONENT = DATA_COMPONENTS.register(ObjectNames.RADIUS, () -> DataComponentType.<Integer>builder()
 		.persistent(Codec.INT)
 		.networkSynchronized(ByteBufCodecs.INT)

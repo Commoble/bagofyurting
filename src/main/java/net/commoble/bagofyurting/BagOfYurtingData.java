@@ -9,10 +9,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.joml.Vector3f;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -63,7 +63,7 @@ public class BagOfYurtingData
 	/** Removes blocks from the Level and stores them as yurt data, returning the data **/
 	public static BagOfYurtingData yurtBlocksAndConvertToData(UseOnContext context, int radius)
 	{
-		Player player = context.getPlayer();
+		@Nullable Player player = context.getPlayer();
 		boolean canPlayerOverrideSafetyLists = canPlayerOverrideSafetyLists(player);
 		// this is the block that the player used the item on
 		BlockPos origin = context.getClickedPos();
@@ -135,7 +135,7 @@ public class BagOfYurtingData
 		BlockPos origin = hitBlockReplaceable ? hitPos : hitPos.relative(context.getClickedFace());
 		Direction orientation = context.getHorizontalDirection();
 		Rotation unrotation = RotationUtil.getUntransformRotation(orientation);
-		Player player = context.getPlayer();
+		@Nullable Player player = context.getPlayer();
 		boolean canPlayerOverrideSafetyLists = canPlayerOverrideSafetyLists(player);
 		
 		// we want to do things in this order:
@@ -246,7 +246,7 @@ public class BagOfYurtingData
 		}
 	}
 
-	private static boolean doesBreakEventSucceed(Level Level, BlockPos pos, BlockState state, Player player)
+	private static boolean doesBreakEventSucceed(Level Level, BlockPos pos, BlockState state, @Nullable Player player)
 	{
 		if (!(Level instanceof ServerLevel))
 		{
@@ -261,7 +261,7 @@ public class BagOfYurtingData
 		return !event.isCanceled();
 	}
 
-	private static boolean doesPlaceEventSucceed(UseOnContext context, Level level, Player player, Map<BlockPos, StateData> levelPositions)
+	private static boolean doesPlaceEventSucceed(UseOnContext context, Level level, @Nullable Player player, Map<BlockPos, StateData> levelPositions)
 	{
 		if (!(level instanceof ServerLevel))
 		{
@@ -327,9 +327,9 @@ public class BagOfYurtingData
 		this.map.forEach((pos,stateData) ->
 		{
 			final BlockState state = stateData.state;
-			@Nullable CompoundTag nbt = stateData.blockEntityData;
+			CompoundTag nbt = stateData.blockEntityData;
 			// uncompressed (old) format uses empty nbts if no data is present, compressed format uses optionals
-			final Optional<CompoundTag> optionalNBT = nbt == null || nbt.isEmpty() ? Optional.empty() : Optional.of(nbt);
+			final Optional<CompoundTag> optionalNBT = nbt.isEmpty() ? Optional.empty() : Optional.of(nbt);
 			// if we haven't stored this specific blockstate yet,
 			// then add it to the state-list-pallette, and use its index in the list as that index
 			final int index = indexMap.computeIfAbsent(state, newState ->

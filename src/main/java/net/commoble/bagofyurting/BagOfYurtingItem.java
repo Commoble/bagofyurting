@@ -14,6 +14,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -108,12 +109,10 @@ public class BagOfYurtingItem extends Item
 	public InteractionResult useOn(UseOnContext context)
 	{
 		Level Level = context.getLevel();
-		if (Level instanceof ServerLevel serverLevel)
+		if (Level instanceof ServerLevel serverLevel && serverLevel.getServer() instanceof MinecraftServer server)
 		{
 			// if bag has data, attempt to unload contents
 			// otherwise, attempt to store contents
-
-			MinecraftServer server = serverLevel.getServer();
 
 			CompressedBagOfYurtingData compressedData = context.getItemInHand().get(BagOfYurtingMod.YURT_DATA_COMPONENT.get());
 			if (compressedData == null)
@@ -131,8 +130,12 @@ public class BagOfYurtingItem extends Item
 
 	public void loadBag(MinecraftServer server, UseOnContext context)
 	{
+		@Nullable Player player = context.getPlayer();
+		if (player == null)
+			return;
+		
 		InteractionHand hand = context.getHand();
-		ItemStack oldStack = context.getPlayer().getItemInHand(hand);
+		ItemStack oldStack = player.getItemInHand(hand);
 		BagOfYurtingData data = BagOfYurtingData.yurtBlocksAndConvertToData(context, getRadius(oldStack));
 
 		if (!data.isEmpty())
@@ -141,14 +144,18 @@ public class BagOfYurtingItem extends Item
 		}
 		else
 		{
-			context.getPlayer().displayClientMessage(Component.translatable("bagofyurting.failure.load"), true);
+			player.sendOverlayMessage(Component.translatable("bagofyurting.failure.load"));
 		}
 	}
 
 	public void unloadBag(UseOnContext context, BagOfYurtingData data)
 	{
+		@Nullable Player player = context.getPlayer();
+		if (player == null)
+			return;
+		
 		InteractionHand hand = context.getHand();
-		ItemStack oldStack = context.getPlayer().getItemInHand(hand);
+		ItemStack oldStack = player.getItemInHand(hand);
 		// attempt to revert unload bag into Levelspace
 		boolean success = data.attemptUnloadIntoLevel(context, getRadius(oldStack));
 
@@ -158,7 +165,7 @@ public class BagOfYurtingItem extends Item
 		}
 		else
 		{
-			context.getPlayer().displayClientMessage(Component.translatable("bagofyurting.failure.unload"), true);
+			player.sendOverlayMessage(Component.translatable("bagofyurting.failure.unload"));
 		}
 	}
 	

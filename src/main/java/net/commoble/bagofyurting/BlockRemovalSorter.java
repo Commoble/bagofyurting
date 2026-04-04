@@ -2,10 +2,12 @@ package net.commoble.bagofyurting;
 
 import java.util.Comparator;
 
+import org.jspecify.annotations.NonNull;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
-public class BlockRemovalSorter implements Comparator<BlockPos>
+public class BlockRemovalSorter implements Comparator<@NonNull BlockPos>
 {
 	private final Level Level;
 	

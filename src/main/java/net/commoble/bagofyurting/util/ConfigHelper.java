@@ -22,7 +22,7 @@ package net.commoble.bagofyurting.util;
 
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.config.ModConfig;

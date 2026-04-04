@@ -3,11 +3,12 @@ package net.commoble.bagofyurting;
 import java.util.List;
 
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.component.DataComponentExactPredicate;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeHolder;
@@ -23,7 +24,19 @@ public class UpgradeRecipeHacks
 	
 	public static ShapelessBagUpgradeRecipe getFakeShapelessRecipe(ShapelessBagUpgradeRecipe recipe, int outputRadius)
 	{
-		return new ShapelessBagUpgradeRecipe(BagOfYurtingItem.withRadius(recipe.upgradeResult(), outputRadius), convertIngredients(recipe.ingredients(), outputRadius), outputRadius);
+		ItemStackTemplate baseTemplate = recipe.upgradeResult();
+		
+		return new ShapelessBagUpgradeRecipe(
+			recipe.commonInfo(),
+			recipe.bookInfo(),
+			new ItemStackTemplate(
+				baseTemplate.item(),
+				baseTemplate.count(),
+				DataComponentPatch.builder()
+					.set(BagOfYurtingMod.RADIUS_COMPONENT.get(), outputRadius)
+					.build()),
+			convertIngredients(recipe.ingredients(), outputRadius),
+			outputRadius);
 	}
 	
 	public static Identifier dummyId(Identifier id, int radius)
@@ -46,7 +59,7 @@ public class UpgradeRecipeHacks
 		return new Ingredient(
 			new DataComponentIngredient(
 				ingredient.getValues(),
-				DataComponentExactPredicate.expect(BagOfYurtingMod.RADIUS_COMPONENT.get(), outputRadius-1),
+				DataComponentPatch.builder().set(BagOfYurtingMod.RADIUS_COMPONENT.get(), outputRadius-1).build(),
 				false));
 	}
 
