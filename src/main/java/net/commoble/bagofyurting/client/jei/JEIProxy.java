@@ -76,7 +76,7 @@ public class JEIProxy implements IModPlugin
 			// recipe for 0 uses a different recipe, JEI finds the recipe for 1 from our recipe json
 			// we need to add fake recipes starting at 2
 			int iterations = BagOfYurtingMod.SERVERCONFIG.creativeUpgradeIterations().get();
-			for (int i=2; i < iterations; i++)
+			for (int i=1; i < iterations; i++)
 			{
 				extraRecipes.add(recipeFactory.apply(i));
 			}

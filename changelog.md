@@ -1,3 +1,6 @@
+# 26.1.0.1
+* Fix upgrade recipe to 3x3x3 bag not displayable in JEI
+
 # 26.1.0.0
 * Updated to MC 26.1 / neoforge 21.1.0.17-beta
 
