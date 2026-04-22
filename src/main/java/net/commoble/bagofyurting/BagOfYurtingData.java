@@ -45,8 +45,8 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
 import net.neoforged.neoforge.common.util.FakePlayerFactory;
-import net.neoforged.neoforge.event.level.BlockEvent.BreakEvent;
 import net.neoforged.neoforge.event.level.BlockEvent.EntityMultiPlaceEvent;
+import net.neoforged.neoforge.event.level.block.BreakBlockEvent;
 
 public class BagOfYurtingData
 {
@@ -256,7 +256,7 @@ public class BagOfYurtingData
 		// but break event requires nonnull player
 		// so we use a fake player if player is null
 		Player eventPlayer = player != null ? player : FakePlayerFactory.getMinecraft((ServerLevel)Level);
-		BreakEvent event = new BreakEvent(Level, pos, state, eventPlayer);
+		BreakBlockEvent event = new BreakBlockEvent(Level, pos, state, eventPlayer);
 		NeoForge.EVENT_BUS.post(event);
 		return !event.isCanceled();
 	}

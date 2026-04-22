@@ -1,3 +1,6 @@
+# 26.1.2.0
+* Fix crash when yurting blocks on latest neoforge (now requires neo 26.1.2.22-beta)
+
 # 26.1.0.1
 * Fix upgrade recipe to 3x3x3 bag not displayable in JEI
 
