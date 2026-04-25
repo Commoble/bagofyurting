@@ -1,3 +1,6 @@
+# 26.1.2.1
+* Fixed yurting/unyurting halves of double chests leaving half-chests lying around
+
 # 26.1.2.0
 * Fix crash when yurting blocks on latest neoforge (now requires neo 26.1.2.22-beta)
 

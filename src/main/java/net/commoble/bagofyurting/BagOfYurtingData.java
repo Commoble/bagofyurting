@@ -31,10 +31,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ProblemReporter;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -119,8 +121,7 @@ public class BagOfYurtingData
 
 	private static void sendBlockUpdateAfterRemoval(Level level, BlockPos pos, BlockState oldState)
 	{
-		level.sendBlockUpdated(pos, oldState, Blocks.AIR.defaultBlockState(), 3);
-		level.updateNeighborsAt(pos, oldState.getBlock());
+		level.markAndNotifyBlock(pos, level.getChunkAt(pos), oldState, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL, 512);
 	}
 
 	public boolean attemptUnloadIntoLevel(UseOnContext context, int radius)
@@ -162,12 +163,13 @@ public class BagOfYurtingData
 			BlockPos maxYurt = origin.offset(radius,2*radius,radius);
 			
 			// set all of the blocks at once, then set all of the block entity data at once
-			List<Entry<BlockPos, StateData>> LevelPositionList = LevelPositions.entrySet().stream()
+			List<Entry<BlockPos, StateData>> levelPositionList = LevelPositions.entrySet().stream()
 				.sorted(BlockUnloadSorter.INSTANCE)
 				.collect(Collectors.toList());
 			
-			LevelPositionList.forEach(entry -> entry.getValue().setBlockIntoLevel(level, entry.getKey(), unrotation));
-			LevelPositionList.forEach(entry -> entry.getValue().setBlockEntityData(level, entry.getKey(), unrotation, minYurt, maxYurt, origin));
+			levelPositionList.forEach(entry -> entry.getValue().setBlockIntoLevel(level, entry.getKey(), unrotation));
+			levelPositionList.forEach(entry -> entry.getValue().setBlockEntityData(level, entry.getKey(), unrotation, minYurt, maxYurt, origin));
+			levelPositionList.forEach(entry -> entry.getValue().postUpdate(level, entry.getKey()));
 
 			if (level instanceof ServerLevel)
 			{
@@ -383,6 +385,13 @@ public class BagOfYurtingData
 	                }
 				}
 			}
+		}
+		
+		public void postUpdate(Level level, BlockPos pos)
+		{
+			BlockState placedState = level.getBlockState(pos);
+			BlockState finalState = Block.updateFromNeighbourShapes(placedState, level, pos);
+			level.setBlock(pos, finalState, Block.UPDATE_ALL);
 		}
 	}
 }
