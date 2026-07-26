@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -31,7 +32,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ProblemReporter;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -75,6 +75,9 @@ public class BagOfYurtingData
 
 		BlockPos minYurt = origin.offset(-radius, 0, -radius);
 		BlockPos maxYurt = origin.offset(radius, 2*radius, radius);
+		Set<BlockPos> positions = BlockPos.betweenClosedStream(minYurt, maxYurt)
+			.map(BlockPos::immutable)
+			.collect(Collectors.toSet());
 
 		// map each position in the loading area to a rotated offset from the player
 		// don't get any blocks that we aren't allowed to get
@@ -83,7 +86,7 @@ public class BagOfYurtingData
 		// currently, we write block data into yurt data when we remove each block, one at a time
 		// we want to first read all the relevant data, *then* remove all the blocks
 		List<Pair<BlockPos, Pair<BlockPos, StateData>>> transformPairs = BlockPos.betweenClosedStream(minYurt, maxYurt) // get every pos in yurt zone
-			.filter(pos -> canBlockBeStored(canPlayerOverrideSafetyLists, context, pos)) // only get the blocks the player can yurt
+			.filter(pos -> canBlockBeStored(canPlayerOverrideSafetyLists, context, pos, positions)) // only get the blocks the player can yurt
 			.map(BlockPos::immutable) // make sure positions are immutable since we're using them as map keys
 			.sorted(new BlockRemovalSorter(level))
 			.map(pos -> getTransformedPosAndStateData(level, pos, rotation, minYurt, maxYurt, origin))
@@ -197,7 +200,7 @@ public class BagOfYurtingData
 
 			double volume = xRadius * yRadius * zRadius * 8D;
 
-			int particles = Math.max(5000, (int)volume*5);
+			int particles = Math.min(5000, (int)volume*20);
 
 			Level.playSound(null, new BlockPos((int)center.x, (int)center.y, (int)center.z), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1, 1f);
 
@@ -218,15 +221,16 @@ public class BagOfYurtingData
 		}
 	}
 
-	private static boolean canBlockBeStored(boolean canPlayerOverrideSafetyLists, UseOnContext context, BlockPos pos)
+	private static boolean canBlockBeStored(boolean canPlayerOverrideSafetyLists, UseOnContext context, BlockPos pos, Set<BlockPos> positions)
 	{
-		Level Level = context.getLevel();
-		BlockState state = Level.getBlockState(pos);
+		Level level = context.getLevel();
+		BlockState state = level.getBlockState(pos);
 		Player player = context.getPlayer();
 		return !state.isAir()
-			&& !Level.isOutsideBuildHeight(pos)
+			&& !level.isOutsideBuildHeight(pos)
 			&& isBlockYurtingAllowedByTags(canPlayerOverrideSafetyLists, state, pos)
-			&& doesBreakEventSucceed(Level, pos, state, player);
+			&& canStateBeRelocated(level, pos, state, positions)
+			&& doesBreakEventSucceed(level, pos, state, player);
 	}
 
 	/**
@@ -246,6 +250,11 @@ public class BagOfYurtingData
 				&& (Lists.newArrayList(BuiltInRegistries.BLOCK.getTagOrEmpty(BagOfYurtingMod.Tags.Blocks.WHITELIST)).size() == 0
 					|| state.is(BagOfYurtingMod.Tags.Blocks.WHITELIST));
 		}
+	}
+	
+	private static boolean canStateBeRelocated(Level level, BlockPos pos, BlockState state, Set<BlockPos> positions)
+	{
+		return state.getRelocability(level, pos).isRelocatable(positions);
 	}
 
 	private static boolean doesBreakEventSucceed(Level Level, BlockPos pos, BlockState state, @Nullable Player player)

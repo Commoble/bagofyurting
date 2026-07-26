@@ -1,5 +1,8 @@
 # 26.1.2.1
 * Fixed yurting/unyurting halves of double chests leaving half-chests lying around
+* Now requires neoforge 26.1.2.87+
+* Beds and doors and extended pistons will now only be yurtable if the whole multiblock is being yurted. This also applies to other mods' blocks which implement neoforge's new multiblock relocation API
+* Reduced particles on yurt/unyurt
 
 # 26.1.2.0
 * Fix crash when yurting blocks on latest neoforge (now requires neo 26.1.2.22-beta)
